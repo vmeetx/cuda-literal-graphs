@@ -15,8 +15,9 @@ from __future__ import annotations
 import math
 
 
-def chain(anchor, n=17, seg=2.85, lag=0.0, swing=0.0, back=-1, curl=0.8, splay=0.9):
-    """Points of one tail, arcing backward and down from the anchor."""
+def chain(anchor, n=17, seg=2.85, lag=0.0, swing=0.0, back=-1, curl=0.8, splay=0.9, bounce=0):
+    """Points of one tail, arcing backward and down from the anchor. `bounce` (pixels) shifts
+    the lower chain vertically, growing toward the tip: the tail lags the body's bob."""
     x, y = anchor
     pts = [(x, y)]
     for i in range(1, n):
@@ -25,7 +26,7 @@ def chain(anchor, n=17, seg=2.85, lag=0.0, swing=0.0, back=-1, curl=0.8, splay=0
         theta = max(-0.15, min(theta, 1.35))       # never forward of vertical by more than a hair
         x += back * seg * math.sin(theta)           # back=-1: toward -x (behind her)
         y += seg * math.cos(theta)                  # always downward
-        pts.append((x, y))
+        pts.append((x, y + bounce * t))
     return pts
 
 

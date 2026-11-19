@@ -124,3 +124,11 @@ def test_far_side_never_lighter_than_near_side():
     pairs += [("D", "M"), ("A", "C"), ("E", "P")]              # arms: sleeve, cuff, hand
     for near, far in pairs:
         assert _lum(pal[far]) <= _lum(pal[near]), (near, far)
+
+
+def test_cheerful_walk_is_upright():
+    """Posture: in every cheerful-walk frame the head centre is at most 1 px ahead of the hip
+    centre (direction of travel = +x). Not applied to walk_tired, which slouches on purpose."""
+    for f in miku_assets.load("walk")["frames"]:
+        a = f["anchors"]
+        assert a["head_cx"] - a["hip_cx"] <= 1.0, (f["drawing"], a["head_cx"], a["hip_cx"])

@@ -53,13 +53,12 @@ def walk_frames(tired=False):
         kw = dict(head=SIDE_FACE, lag_prev=lag, swing=swing, tired=tired, lean=pick.get("lean", 0))
         if not tired:
             kw["spin"] = round(360 * t / period) % 360   # angle follows time: an even turn per second
-        if d.startswith("pass") and not tired:
-            front, back, near, bob, slag = side_body.WALK[d]
-            side_body.WALK["_pass"] = (front, pick.get("back", back), near, bob, pick.get("slag", slag))
-            rows, meta = side_body.pose_side("_pass", **kw)
-            meta["drawing"] = d
-        else:
-            rows, meta = side_body.pose_side(d, **kw)
+            kw["lean"] = 0                                  # upright: head stacked over the hips
+            prev_d = xs["frames"][len(out) - 1]["drawing"]
+            kw["bounce"] = side_body.CHEERY[prev_d][3] - side_body.CHEERY[d][3]  # tails lag the bob
+        # (the GATE 2 passing pick D - lean and high kick - is superseded by the upright chibi
+        # gait in side_body.CHEERY, so every cheerful drawing goes through the same table)
+        rows, meta = side_body.pose_side(d, **kw)
         out.append({"drawing": d, "ticks": f["ticks"], "key": f.get("key", False),
                     "grid": rows, "anchors": meta})
         t += f["ticks"]

@@ -170,6 +170,33 @@ LEGS = {  # 12 wide x 13 tall; hip roughly at columns 1-4 of the box
         "....ossso...", "...ossso....", "...obbbo....", "...obbbbo...", "...oooooo...",
         "............", "............", "............"],
 }
+# Chibi gait: short legs that stay under the body (4 px wide, hip at box columns 2-5).
+LEGS.update({
+    "c_front": ["..occo...", "..osso...", "..osso...", "..osso...", "...osso..", "...osso..",
+                "...osso..", "...osso..", "....osso.", "....obbo.", "....obbbo", "....obbbb",
+                "....ooooo"],
+    "c_back": ["..occo...", "..osso...", "..osso...", "..osso...", ".osso....", ".osso....",
+               ".osso....", "osso.....", "osso.....", "obbo.....", "obbbo....", "obbbo....",
+               "ooooo...."],
+    "d_front": ["..occo...", "..osso...", "...osso..", "...osso..", "...osso..", "..osso...",
+                "..osso...", "..osso...", "..osso...", "..obbo...", "..obbbo..", "..obbbbo.",
+                "..ooooooo"],
+    "d_back": ["..occo...", "..osso...", ".osso....", ".osso....", "osso.....", "osso.....",
+               ".osso....", ".obbo....", "obbbo....", "obbbo....", "ooooo....", ".........",
+               "........."],
+    "s_plant": ["..occo...", "..osso...", "..osso...", "..osso...", "..osso...", "..osso...",
+                "..osso...", "..osso...", "..osso...", "..osso...", "..osso...", "..obbo...",
+                "..obbbo..", "..obbbbo.", "..ooooooo"],
+    "p_lift": ["..occo...", "..osso...", "..osso...", "..osso...", "..osso...", ".osso....",
+               "osso.....", "obbo.....", "obbbo....", "ooooo....", ".........", ".........",
+               "........."],
+    "u_front": ["..occo...", "..osso...", "...osso..", "...osso..", "....osso.", "....osso.",
+                "...osso..", "...obbo..", "...obbbo.", "...ooooo.", ".........", ".........",
+                "........."],
+    "u_plant": ["..occo...", "..osso...", "..osso...", "..osso...", "..osso...", "..osso...",
+                "..osso...", "..osso...", "..osso...", "..osso...", "..osso...", "..obbo...",
+                "...obbo..", "...obbbo.", "...ooooo."],
+})
 NEAR = {"o": "B", "s": "F", "c": "A", "b": "F"}
 FAR = {"o": "B", "s": "Y", "c": "C", "b": "Y"}   # far leg: one step darker on each ramp (F->Y, A->C)
 
@@ -186,6 +213,19 @@ WALK = {
     "up_l":      ("swing_front", "support_up", "front", -2, 0),
 }
 WALK["side_stand"] = ("support", "support", "front", 0, 0)
+# cheerful chibi walk: (front shape, back shape, near leg, bob, skirt lag)
+# bounce: down 1 px at contact/down, up 1 px at passing/up
+CHEERY = {
+    "contact_r": ("c_front", "c_back", "front", 1, 0),
+    "down_r":    ("d_front", "d_back", "front", 1, -1),
+    "pass_r":    ("s_plant", "p_lift", "back", -1, -1),
+    "up_r":      ("u_front", "u_plant", "back", -1, 0),
+    "contact_l": ("c_front", "c_back", "back", 1, 0),
+    "down_l":    ("d_front", "d_back", "back", 1, -1),
+    "pass_l":    ("s_plant", "p_lift", "front", -1, -1),
+    "up_l":      ("u_front", "u_plant", "front", -1, 0),
+}
+CHEERY_X = {"front": 35, "back": 33}   # the far foot sits just behind the near foot
 LEG_X = {"front": 41, "back": 30}
 STAND_X = {"front": 38, "back": 35}   # box x of each leg shape (front leg ahead of the back leg)
 
@@ -238,15 +278,19 @@ def lean_rows(rows, lean, waist, neck=31):
 
 
 # cheerful walk: the near arm reaches forward and the hand spins the leek in circles
-SPIN_ARM = [  # x0 = 37, rows 34..39; hand at columns 49-50, rows 37-38
-    "..BEEB.........",
-    ".BDDDDBBBBB....",
-    ".BMDDDDDDDDBBB.",
-    "..BMMMDDDDAAEEB",
-    "...BBBBBBBAAEPB",
-    "..........BBBB.",
+SPIN_ARM = [  # x0 = 37, rows 34..43: upper arm hangs by her side, forearm points forward
+    "..BEEB......",
+    "..BEEB......",
+    ".BDDDB......",
+    ".BDDMB......",
+    ".BDDMB......",
+    ".BDDMBBB....",
+    ".BDDMDDDABB.",
+    "..BMMMDDAEEB",
+    "...BBBBBBEPB",
+    ".........BB.",
 ]
-SPIN_HAND = (50, 37)
+SPIN_HAND = (47, 41)
 
 
 def spin_leek(c, k, bob, protect):
@@ -256,14 +300,14 @@ def spin_leek(c, k, bob, protect):
     hx, hy = SPIN_HAND[0], SPIN_HAND[1] + bob
     a = math.radians(k - 90)                           # k is the angle in degrees; 0 points straight up
     cells = {}
-    for r in range(1, 10):                             # stalk, 2 px thick
+    for r in range(1, 7):                              # stalk, 2 px thick (a wrist twirl)
         x, y = hx + r * math.cos(a), hy + r * math.sin(a)
         for dx, dy in ((0, 0), (round(-math.sin(a)), round(math.cos(a)))):
             cells[(round(x) + dx, round(y) + dy)] = "b"
-    for off in (-0.32, 0.0, 0.32):                     # three leaves fanning out
-        for r in range(9, 16):
-            x, y = hx + r * math.cos(a + off * (r - 8) / 7), hy + r * math.sin(a + off * (r - 8) / 7)
-            cells[(round(x), round(y))] = "I" if off == 0 or r < 14 else "X"
+    for off in (-0.22, 0.0, 0.22):                     # three leaves, close together
+        for r in range(6, 11):
+            x, y = hx + r * math.cos(a + off * (r - 5) / 5), hy + r * math.sin(a + off * (r - 5) / 5)
+            cells[(round(x), round(y))] = "I" if off == 0 or r < 10 else "X"
     for (x, y), ch in cells.items():
         if (x, y) not in protect:
             c.set(x, y, ch)
@@ -298,7 +342,7 @@ def fill_holes(cv):
 
 
 def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, tired=False,
-              lean=None, spin=None):
+              lean=None, spin=None, bounce=0):
     """One side-view drawing facing right. Returns (rows, metadata).
     drawing: a walk drawing, "side_stand", or "three_quarter" (standing, head turned)."""
     three_q = drawing == "three_quarter"
@@ -308,8 +352,9 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
         head = "sleepy"
     elif spin is not None:
         head = "cheery"
-    front, back, near, bob, slag = WALK[drawing]
-    lean = lean or 0
+    cheerful = spin is not None and not tired and drawing in CHEERY
+    front, back, near, bob, slag = (CHEERY if cheerful else WALK)[drawing]
+    lean = 0 if cheerful else (lean or 0)
     if alt:
         o = PASS_ALTS[alt]
         back = o.get("back", back)
@@ -326,6 +371,11 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
                               curl=0.25, splay=0.38)
         near_pts = tails.chain((tie[0] + 1, tie[1] + 1), lag=0.2, swing=0.0, back=-1,
                                curl=0.2, splay=0.28)
+    elif cheerful:   # 30-45 degrees down and back, bouncing a beat behind her bob
+        far_pts = tails.chain((tie[0] - 1, tie[1]), lag=lag_prev * 0.5, swing=swing * 0.5,
+                              back=-1, curl=0.12, splay=0.72, bounce=bounce)
+        near_pts = tails.chain((tie[0] + 1, tie[1] + 1), lag=lag_prev * 0.4, swing=swing * 0.4,
+                               back=-1, curl=0.10, splay=0.60, bounce=bounce)
     else:
         far_pts = tails.chain((tie[0] - 1, tie[1]), lag=lag_prev, swing=swing, back=-1,
                               curl=1.05, splay=0.85)
@@ -333,10 +383,13 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
                                back=-1, curl=0.95, splay=0.70)
     body = Canvas()
     legs_y = 54 + bob
+    if cheerful:   # the planted foot stays on the ground as the body rises and falls
+        planted = front if front.endswith("plant") else (back if back.endswith("plant") else front)
+        legs_y = BASELINE + 1 - len(LEGS[planted])
     far_leg, near_leg = (back, front) if near == "front" else (front, back)
     far_key = "back" if near == "front" else "front"
     near_key = "front" if near == "front" else "back"
-    xs = STAND_X if drawing == "side_stand" else LEG_X
+    xs = STAND_X if drawing == "side_stand" else (CHEERY_X if cheerful else LEG_X)
     if tired and drawing != "side_stand":
         xs = {"front": LEG_X["front"] - 1, "back": LEG_X["back"] + 1}   # shorter stride
     if tired:
@@ -381,6 +434,8 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
         drag_stalk(body, 31, 46, 20, 64, bob)
         body.patch(6, 61, DRAG_LEAVES)
     fill_holes(body)
+    import measure_pose
+    head_cx, hip_cx = measure_pose.centres(body, bob)
     body_front_x = max(x for y in range(c.h) for x in range(c.w)
                        if body.g[y][x] != "." and y <= BASELINE)
     # tails: far tail behind everything, near tail in front of the body
@@ -405,6 +460,7 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
             "tie_anchor": tie, "tail_far": [list(p) for p in far_pts],
             "leek_angle": spin,
             "body_front_x": body_front_x,
+            "head_cx": head_cx, "hip_cx": hip_cx,
             "tail_front_x": max(x for x, _ in c.tail_cells) if getattr(c, "tail_cells", None) else None,
             "tail_near": near_meta}
     return c.rows(), meta

@@ -121,9 +121,9 @@ EXTRA = {
         24: "EEEEEEECAAGCEEEEB",
         25: "EEEEEEECAAACEEEB.",
         26: "EUUUUEEEBBBEEEEB.",
-        27: "EEEEEEEEEEESSSEB.",
-        28: "EEEEEEEEEEESVVSB.",
-        29: "EEEEEEEEEEEESSB..",
+        27: "EEEEEEEEEEEEEUEB.",
+        28: "EEEEEEEEEEEUUEEB.",
+        29: "EEEEEEEEEEEEEEB..",
     },
     "three_quarter": {   # turned toward the viewer: near eye large, far eye narrow, mouth centred
         18: "EEACEEEEACEAAAAB.",
