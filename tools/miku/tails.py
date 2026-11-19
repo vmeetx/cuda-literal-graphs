@@ -47,14 +47,14 @@ NEAR_SHADES = {"hi": "G", "base": "A", "shadow": "C"}
 FAR_SHADES = {"hi": "A", "base": "C", "shadow": "C"}     # one step darker on the hair ramp
 
 
-def draw(canvas, pts, light_dir=1, far=False):
+def draw(canvas, pts, light_dir=1, far=False, scale=1.0):
     """Paint the tail into transparent pixels only (so call order sets draw order), outline it,
     and return the chain points. canvas.tail_cells collects every painted cell."""
     shades = FAR_SHADES if far else NEAR_SHADES
     n = len(pts)
     mask = {}
     for i, (px, py) in enumerate(pts):
-        r = radius(i, n)
+        r = radius(i, n) * scale
         px = px - light_dir * kink(i)
         for yy in range(int(py - r) - 1, int(py + r) + 2):
             for xx in range(int(px - r) - 1, int(px + r) + 2):

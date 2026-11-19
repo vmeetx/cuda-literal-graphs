@@ -78,5 +78,9 @@
  "Z": {
   "hex": "#3b4350",
   "name": "ground shadow (terminal)"
+ },
+ "Y": {
+  "hex": "#1a2a40",
+  "name": "far-side slate: far sock and boot (one step darker than F)"
  }
 }

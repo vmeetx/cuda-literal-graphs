@@ -110,7 +110,7 @@ def drag_stalk(c, x0, y0, x1, y1, bob):
 FAR_ARM = {  # the far arm, behind the body, swinging against the legs
     # far side, so in the shadow colours: sleeve shadow grey, teal cuff, shaded hand
     "fwd": (42, 38, [".BMMB..", ".BMMMB.", "..BMMMB", "...BMMB", "...BCCB", "....BPB", "....BB."]),
-    "back": (27, 38, ["..BMMB.", ".BMMMB.", "BMMMB..", "BMMB...", "BCCB...", "BPB....", ".BB...."]),
+    "back": (30, 38, ["...BMMB", "..BMMMB", ".BMMMB.", ".BMMB..", ".BCCB..", ".BPB...", "..BB..."]),
     "mid": None,
 }
 ARM_FOR = {"contact_r": "fwd", "down_r": "fwd", "pass_r": "mid", "up_r": "back",
@@ -171,7 +171,7 @@ LEGS = {  # 12 wide x 13 tall; hip roughly at columns 1-4 of the box
         "............", "............", "............"],
 }
 NEAR = {"o": "B", "s": "F", "c": "A", "b": "F"}
-FAR = {"o": "B", "s": "B", "c": "C", "b": "B"}   # far leg: one step darker on each ramp (F->B, A->C)
+FAR = {"o": "B", "s": "Y", "c": "C", "b": "Y"}   # far leg: one step darker on each ramp (F->Y, A->C)
 
 # walk drawings: (front-leg shape, back-leg shape, which leg is near, bob, skirt lag)
 # "near" = the leg on the viewer's side. R = right (near) leg forward.
@@ -254,7 +254,7 @@ def spin_leek(c, k, bob, protect):
     outlined. A prop, so it is drawn procedurally; it never paints over `protect` cells."""
     import math
     hx, hy = SPIN_HAND[0], SPIN_HAND[1] + bob
-    a = math.radians(k * 45 - 90)                      # k=0 points straight up
+    a = math.radians(k - 90)                           # k is the angle in degrees; 0 points straight up
     cells = {}
     for r in range(1, 10):                             # stalk, 2 px thick
         x, y = hx + r * math.cos(a), hy + r * math.sin(a)
@@ -272,6 +272,29 @@ def spin_leek(c, k, bob, protect):
             n = (x + dx, y + dy)
             if n not in cells and c.get(*n) == ".":
                 c.set(n[0], n[1], "B")
+
+
+def fill_holes(cv):
+    """Transparent pixels trapped inside the figure (not connected to the canvas border) are
+    holes: fill each with the most common colour around it."""
+    from collections import deque
+    h, w = cv.h, cv.w
+    seen = set((x, y) for y in range(h) for x in range(w)
+               if (x in (0, w - 1) or y in (0, h - 1)) and cv.g[y][x] == ".")
+    q = deque(seen)
+    while q:
+        x, y = q.popleft()
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            n = (x + dx, y + dy)
+            if 0 <= n[0] < w and 0 <= n[1] < h and n not in seen and cv.g[n[1]][n[0]] == ".":
+                seen.add(n)
+                q.append(n)
+    for y in range(h):
+        for x in range(w):
+            if cv.g[y][x] == "." and (x, y) not in seen:
+                ns = [cv.get(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+                ns = [k for k in ns if k != "."]
+                cv.g[y][x] = max(set(ns), key=ns.count) if ns else "B"
 
 
 def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, tired=False,
@@ -305,9 +328,9 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
                                curl=0.2, splay=0.28)
     else:
         far_pts = tails.chain((tie[0] - 1, tie[1]), lag=lag_prev, swing=swing, back=-1,
-                              curl=0.85, splay=1.0)
+                              curl=1.05, splay=0.85)
         near_pts = tails.chain((tie[0] + 1, tie[1] + 1), lag=lag_prev * 0.8, swing=swing * 0.6,
-                               back=-1, curl=0.75, splay=0.8)
+                               back=-1, curl=0.95, splay=0.70)
     body = Canvas()
     legs_y = 54 + bob
     far_leg, near_leg = (back, front) if near == "front" else (front, back)
@@ -357,6 +380,7 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
     if tired:   # the far arm, behind her, drags the leek: stalk down to leaves on the ground
         drag_stalk(body, 31, 46, 20, 64, bob)
         body.patch(6, 61, DRAG_LEAVES)
+    fill_holes(body)
     body_front_x = max(x for y in range(c.h) for x in range(c.w)
                        if body.g[y][x] != "." and y <= BASELINE)
     # tails: far tail behind everything, near tail in front of the body
@@ -365,7 +389,7 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
         for x in range(c.w):
             if body.g[y][x] != ".":
                 c.g[y][x] = body.g[y][x]
-    near_meta = tails.draw(c, near_pts)
+    near_meta = tails.draw(c, near_pts, scale=0.82)          # the near tail a little narrower
     if spin is not None and not tired:   # the spinning leek, in front; never over her face
         head = {(x, y) for y in range(c.h) for x in range(c.w)
                 if y < 33 + bob and c.g[y][x] != "."}          # the leek passes behind her head
@@ -379,7 +403,7 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
     meta = {"view": "three_quarter" if three_q else "side", "facing": "right",
             "drawing": "three_quarter" if three_q else drawing, "bob": bob,
             "tie_anchor": tie, "tail_far": [list(p) for p in far_pts],
-            "leek_angle": None if spin is None else spin * 45,
+            "leek_angle": spin,
             "body_front_x": body_front_x,
             "tail_front_x": max(x for x, _ in c.tail_cells) if getattr(c, "tail_cells", None) else None,
             "tail_near": near_meta}

@@ -52,7 +52,7 @@ def walk_frames(tired=False):
         lag = {"contact": 2.4, "down": 1.8, "pass": 0.8, "up": 1.2}[d.split("_")[0]]
         kw = dict(head=SIDE_FACE, lag_prev=lag, swing=swing, tired=tired, lean=pick.get("lean", 0))
         if not tired:
-            kw["spin"] = len(out) % 8          # the leek turns 45 degrees per drawing: one circle per cycle
+            kw["spin"] = round(360 * t / period) % 360   # angle follows time: an even turn per second
         if d.startswith("pass") and not tired:
             front, back, near, bob, slag = side_body.WALK[d]
             side_body.WALK["_pass"] = (front, pick.get("back", back), near, bob, pick.get("slag", slag))

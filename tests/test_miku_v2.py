@@ -51,7 +51,7 @@ def test_walk_head_only_bobs():
     f0 = d["frames"][0]
     def head(f):
         b = f["anchors"]["bob"]
-        return [r[40:58] for r in f["grid"][2 + b:30 + b]]   # face, fringe, crown front: tails never reach it
+        return [r[40:55] for r in f["grid"][2 + b:30 + b]]   # face, fringe, crown: no tail or spinning leek there
     h0 = head(f0)
     for f in d["frames"][1:]:
         assert head(f) == h0, f["drawing"]
@@ -91,3 +91,36 @@ def test_violations_detects_moonwalk_and_profile_flip():
     assert any("profile to profile" in m for _, m in bad)
     bad = miku_motion.violations([T("walk", 0, "front", 5, 0)])
     assert any("front view" in m for _, m in bad)
+
+
+@pytest.mark.parametrize("clip", CLIPS)
+def test_no_tail_pixel_ahead_of_the_body(clip):
+    """In every profile frame (facing right) both tails trail behind: no tail pixel is further
+    forward than the body's leading edge."""
+    for f in miku_assets.load(clip)["frames"]:
+        a = f["anchors"]
+        if a.get("view") not in ("side", "three_quarter"):
+            continue
+        assert a["tail_front_x"] < a["body_front_x"], (clip, f["drawing"], a["tail_front_x"],
+                                                      a["body_front_x"])
+
+
+def _lum(hx):
+    r, g, b = (int(hx[i:i + 2], 16) for i in (1, 3, 5))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def test_far_side_never_lighter_than_near_side():
+    sys.path.insert(0, str(ROOT / "tools/miku"))
+    import side_body
+    import tails
+
+    pal = miku_assets.load("walk")["palette"]
+    pairs = []
+    for k in side_body.NEAR:                                   # legs: sock, band, boot, outline
+        pairs.append((side_body.NEAR[k], side_body.FAR[k]))
+    for k in tails.NEAR_SHADES:                                # tails: highlight, base, shadow
+        pairs.append((tails.NEAR_SHADES[k], tails.FAR_SHADES[k]))
+    pairs += [("D", "M"), ("A", "C"), ("E", "P")]              # arms: sleeve, cuff, hand
+    for near, far in pairs:
+        assert _lum(pal[far]) <= _lum(pal[near]), (near, far)
