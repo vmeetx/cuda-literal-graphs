@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cgviz"
+version = "0.0.1"
+description = "I thought CUDA graphs were graphs, so I made them graphs."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Veer Meet" }]
+requires-python = ">=3.10,<3.11"
+# torch is not listed here: it needs the cu130 index. Install it from requirements.txt.
+dependencies = [
+    "cuda-bindings==13.4.4",
+    "networkx==3.4.2",
+    "matplotlib==3.10.9",
+    "numpy==1.26.4",
+    "img2unicode==0.1a11",
+]
+
+[project.optional-dependencies]
+fast = ["img2unicode[n2]==0.1a11"]
+dev = ["pytest", "ruff"]
+
+[project.scripts]
+cgviz = "cgviz.cli:main"
+
+[tool.setuptools]
+packages = ["cgviz"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

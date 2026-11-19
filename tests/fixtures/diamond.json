@@ -1,0 +1,9 @@
+{
+  "nodes": [
+    {"id": 0, "kind": "kernel", "name": "gemm"},
+    {"id": 1, "kind": "kernel", "name": "relu"},
+    {"id": 2, "kind": "kernel", "name": "gemm"},
+    {"id": 3, "kind": "kernel", "name": "add"}
+  ],
+  "edges": [[0, 1], [0, 2], [1, 3], [2, 3]]
+}
