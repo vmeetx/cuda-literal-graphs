@@ -268,17 +268,16 @@ class Walk:
             if any(w.state == "victory" for w in self.walkers) and not event:
                 event = "victory"
             caption = self.caption
-            if not hl:   # everyone is on the move: say where they are heading
-                heading = []
+            if not hl:   # everyone is on the move: say where they are heading, and from where
+                heading: dict[str, list[str]] = {}
                 for w in sorted(self.walkers, key=lambda x: x.id):
                     if w.node is not None and w.state in ("walk", "hold", "wait"):
-                        lab = self.nodes[w.node]["label"]
-                        if w.edge:
-                            lab += f" (from {self.nodes[w.edge[0]]['label']})"
-                        if lab not in heading:
-                            heading.append(lab)
+                        src = heading.setdefault(self.nodes[w.node]["label"], [])
+                        if w.edge and self.nodes[w.edge[0]]["label"] not in src:
+                            src.append(self.nodes[w.edge[0]]["label"])
                 if heading:
-                    caption = "→ " + "  ·  ".join(heading)
+                    caption = "→ " + "  ·  ".join(
+                        f"{t} (from {', '.join(f)})" if f else t for t, f in heading.items())
             out.append(Frame(snap, hl, caption, event))
             frame_no += 1
             if all(w.state in ("done", "victory") for w in self.walkers) and all(

@@ -149,8 +149,8 @@ class Scene:
         self.offs = sprite_offsets(frames, lay.orient)
         xs, ys = [0, lay.width - 1], [0, lay.height - 1]
         for f, offs in zip(frames, self.offs):
-            for wid, pos, *_r in f.walkers:
-                sx, sy = sprite_rect(pos, lay.orient, offs[wid])
+            for wid, pos, sprite, *_r in f.walkers:
+                sx, sy = self._at(pos, sprite, offs[wid])
                 xs += [sx, sx + SPRITE_W - 1]
                 ys += [sy, sy + SPRITE_H - 1]
         ys.append(max(ys) + BOTTOM_MARGIN)       # room below the last box for the ending
@@ -171,11 +171,20 @@ class Scene:
                        if lay.cells.get(xy, (" ",))[0] != " "}
         self.cams = self._track()
 
+    def _at(self, pos, sprite, off):
+        """Graph-coordinate top-left of a sprite. For the victory she stands centred on top
+        of the final box (feet just above its top border) so the box never hides her."""
+        if sprite == "victory_1":
+            for x0, y0, x1, y1 in self.lay.boxes.values():
+                if x0 <= pos[0] <= x1 and y0 <= pos[1] <= y1:
+                    return (x0 + x1) // 2 - SPRITE_W // 2 + 1, y0 - SPRITE_H
+        return sprite_rect(pos, self.lay.orient, off)
+
     # canvas coordinates of each walker's sprite
     def rects(self, i):
         out = []
-        for wid, pos, *_r in self.frames[i].walkers:
-            sx, sy = sprite_rect(pos, self.lay.orient, self.offs[i][wid])
+        for wid, pos, sprite, *_r in self.frames[i].walkers:
+            sx, sy = self._at(pos, sprite, self.offs[i][wid])
             out.append((sx + self.ox, sy + self.oy, sx + self.ox + SPRITE_W - 1,
                         sy + self.oy + SPRITE_H - 1))
         return out
