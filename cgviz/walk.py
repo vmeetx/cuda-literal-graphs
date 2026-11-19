@@ -20,7 +20,7 @@ STOP_FRAMES = 14       # time standing at a node, at --speed 1
 VICTORY_FRAMES = 30
 WAIT_BACK = 13         # cells before the meeting point where walkers wait at a join
 SPRITE_GAP = 13        # cells a walker gets ahead before its sibling leaves a fork
-HOP = (0, 0, -1, -1, -2, -2, -1, -1)  # victory hop, pixels
+HOP = (0, 0, -1, -2, -3, -3, -2, -1, 0, 0, 0, 0)  # victory hop, pixels
 BOB = (0, 0, 0, -1, -1, -1, 0, 0, 0, 1, 1, 1)  # pixel offsets over one bob cycle
 
 
@@ -273,6 +273,8 @@ class Walk:
                 for w in sorted(self.walkers, key=lambda x: x.id):
                     if w.node is not None and w.state in ("walk", "hold", "wait"):
                         lab = self.nodes[w.node]["label"]
+                        if w.edge:
+                            lab += f" (from {self.nodes[w.edge[0]]['label']})"
                         if lab not in heading:
                             heading.append(lab)
                 if heading:

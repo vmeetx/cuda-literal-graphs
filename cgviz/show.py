@@ -67,12 +67,15 @@ HL_BG = (110, 84, 10)               # ...on a gold background, so it reads on ev
 CAPTION = (235, 238, 242)
 DIM = (130, 134, 142)
 BLANK = (" ", None, None, False)
+BOTTOM_MARGIN = 3                   # rows kept free below the last box
 NODE_GAP = {"TB": 15, "LR": 10}     # sibling gap in the animated layout: room for a sprite
 
 
 def _pad(frame):
     w = len(frame[0])
-    return ["." * w] * 2 + list(frame) + ["." * w] * 2
+    # 3 rows of headroom for the hop, 1 below for the bob; the feet land in the bottom cell, so
+    # a walker's line runs through her shins
+    return ["." * w] * 3 + list(frame) + ["." * w]
 
 
 _SPRITE_CACHE: dict = {}
@@ -150,6 +153,7 @@ class Scene:
                 sx, sy = sprite_rect(pos, lay.orient, offs[wid])
                 xs += [sx, sx + SPRITE_W - 1]
                 ys += [sy, sy + SPRITE_H - 1]
+        ys.append(max(ys) + BOTTOM_MARGIN)       # room below the last box for the ending
         self.ox, self.oy = -min(xs), -min(ys)
         self.cw, self.ch = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
         self.vh = rows - 2                       # caption + status lines
@@ -161,6 +165,10 @@ class Scene:
             cells = {(x, y0) for x in range(x0, x1 + 1)} | {(x, y1) for x in range(x0, x1 + 1)}
             cells |= {(x0, y) for y in range(y0, y1 + 1)} | {(x1, y) for y in range(y0, y1 + 1)}
             self.border[n] = cells
+        # label characters (inside boxes, not on the border): drawn over sprites
+        self.labels = {xy for n, (x0, y0, x1, y1) in lay.boxes.items()
+                       for xy in ((x, (y0 + y1) // 2) for x in range(x0 + 1, x1))
+                       if lay.cells.get(xy, (" ",))[0] != " "}
         self.cams = self._track()
 
     # canvas coordinates of each walker's sprite
@@ -239,6 +247,12 @@ class Scene:
                     if 0 <= r < self.vh and 0 <= c < self.vw:
                         ch, fg, bg = sc
                         grid[r][c] = (ch, fg, bg, False)
+        # box labels stay readable on top of the sprites
+        for (gx, gy) in self.labels:
+            r, c = gy + self.oy - cy, gx + self.ox - cx
+            if 0 <= r < self.vh and 0 <= c < self.vw:
+                ch, fg, bold = cells[(gx, gy)]
+                grid[r][c] = (ch, fg, None, bold)
         # the box being visited stays in front of the sprites, so the stop is always visible
         for n in f.highlight:
             x0, y0, x1, y1 = self.lay.boxes[n]
