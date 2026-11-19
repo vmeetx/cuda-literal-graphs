@@ -1,0 +1,16 @@
+# Side walk cycle, facing right (left = mirror). 12 fps; one cycle = 12 ticks = 1 s.
+# Contacts and passings are held 2 ticks (the readable keys); downs and ups 1 tick.
+# The free arm is the far arm (behind the body); the near arm keeps P3's shoulder carry.
+# Skirt and tie lag the hips by 1 tick; tails trail, fed by the previous tick's velocity.
+clip: walk
+view: side
+loop: true
+frames:
+  - {drawing: contact_r, ticks: 2, key: true}
+  - {drawing: down_r, ticks: 1}
+  - {drawing: pass_r, ticks: 2, key: true}
+  - {drawing: up_r, ticks: 1}
+  - {drawing: contact_l, ticks: 2, key: true}
+  - {drawing: down_l, ticks: 1}
+  - {drawing: pass_l, ticks: 2, key: true}
+  - {drawing: up_l, ticks: 1}
