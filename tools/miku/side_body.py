@@ -77,6 +77,14 @@ DRAG_ARM = [  # x0 = 33, rows 34..45
     "..BEEB.", "..BEEB.", ".BDDDB.", ".BDDMB.", ".BDDMB.", ".BDDMB.", ".BDDMB.", ".BDDMB.",
     ".BAAAB.", "..BEEB.", ".BEPEB.", "..BBB..",
 ]
+LIMP_ARM = [  # x0 = 35, rows 34..44: the near arm hanging limp (sleeve, cuff, small hand)
+    "..BEEB.", "..BEEB.", ".BDDDB.", ".BDDMB.", "..BDDMB", "..BDDMB", "..BDDMB",
+    "..BAAAB", "...BEEB", "...BEPB", "....BB.",
+]
+FAR_DRAG_ARM = [  # x0 = 29, rows 35..46: the far arm behind her, shadow colours, gripping the stalk
+    "..BMB.", ".BMMB.", ".BMMB.", ".BMMB.", ".BMMB.", ".BMMB.", ".BMMB.",
+    ".BCCB.", ".BPPB.", ".BPPB.", "..BB..",
+]
 DRAG_LEAVES = [  # x0 = 8, rows 61..67: leaves splayed on the ground behind her
     "......BB.....BB.",
     ".....BIIB...BIIB",
@@ -163,7 +171,7 @@ LEGS = {  # 12 wide x 13 tall; hip roughly at columns 1-4 of the box
         "............", "............", "............"],
 }
 NEAR = {"o": "B", "s": "F", "c": "A", "b": "F"}
-FAR = {"o": "B", "s": "M", "c": "C", "b": "B"}
+FAR = {"o": "B", "s": "B", "c": "C", "b": "B"}   # far leg: one step darker on each ramp (F->B, A->C)
 
 # walk drawings: (front-leg shape, back-leg shape, which leg is near, bob, skirt lag)
 # "near" = the leg on the viewer's side. R = right (near) leg forward.
@@ -229,8 +237,45 @@ def lean_rows(rows, lean, waist, neck=31):
     return out
 
 
+# cheerful walk: the near arm reaches forward and the hand spins the leek in circles
+SPIN_ARM = [  # x0 = 37, rows 34..39; hand at columns 49-50, rows 37-38
+    "..BEEB.........",
+    ".BDDDDBBBBB....",
+    ".BMDDDDDDDDBBB.",
+    "..BMMMDDDDAAEEB",
+    "...BBBBBBBAAEPB",
+    "..........BBBB.",
+]
+SPIN_HAND = (50, 37)
+
+
+def spin_leek(c, k, bob, protect):
+    """The leek at angle k*45 degrees around the hand: pale stalk, then fanned leaves, all
+    outlined. A prop, so it is drawn procedurally; it never paints over `protect` cells."""
+    import math
+    hx, hy = SPIN_HAND[0], SPIN_HAND[1] + bob
+    a = math.radians(k * 45 - 90)                      # k=0 points straight up
+    cells = {}
+    for r in range(1, 10):                             # stalk, 2 px thick
+        x, y = hx + r * math.cos(a), hy + r * math.sin(a)
+        for dx, dy in ((0, 0), (round(-math.sin(a)), round(math.cos(a)))):
+            cells[(round(x) + dx, round(y) + dy)] = "b"
+    for off in (-0.32, 0.0, 0.32):                     # three leaves fanning out
+        for r in range(9, 16):
+            x, y = hx + r * math.cos(a + off * (r - 8) / 7), hy + r * math.sin(a + off * (r - 8) / 7)
+            cells[(round(x), round(y))] = "I" if off == 0 or r < 14 else "X"
+    for (x, y), ch in cells.items():
+        if (x, y) not in protect:
+            c.set(x, y, ch)
+    for (x, y) in list(cells):
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            n = (x + dx, y + dy)
+            if n not in cells and c.get(*n) == ".":
+                c.set(n[0], n[1], "B")
+
+
 def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, tired=False,
-              lean=None):
+              lean=None, spin=None):
     """One side-view drawing facing right. Returns (rows, metadata).
     drawing: a walk drawing, "side_stand", or "three_quarter" (standing, head turned)."""
     three_q = drawing == "three_quarter"
@@ -238,6 +283,8 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
         drawing, head = "side_stand", "three_quarter"
     if tired:
         head = "sleepy"
+    elif spin is not None:
+        head = "cheery"
     front, back, near, bob, slag = WALK[drawing]
     lean = lean or 0
     if alt:
@@ -249,12 +296,18 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
     c = Canvas()
     # back-to-front: far tail, far leg, leek, torso/skirt, near leg, head, near tail, arm
     tie = (HX + side_head.TIE_ANCHOR[0], HY + side_head.TIE_ANCHOR[1] + bob)
-    # two distinct tails: the far one angles back, the near one hangs nearly straight and
-    # curls forward so it crosses in front of the skirt
-    far_pts = tails.chain((tie[0] - 1, tie[1]), lag=lag_prev, swing=swing, back=-1, curl=0.05,
-                          splay=0.42)
-    near_pts = tails.chain((tie[0] + 3, tie[1] + 1), lag=lag_prev * 0.6, swing=swing * 0.4, back=-1,
-                           curl=-0.10, splay=0.08)
+    # two tails arcing back and down from the hair tie, clear of her back; the far one wider
+    # and a shade darker. Tired: both hang heavily down and close, with little sway.
+    if tired:
+        far_pts = tails.chain((tie[0] - 1, tie[1]), lag=0.2, swing=0.0, back=-1,
+                              curl=0.25, splay=0.38)
+        near_pts = tails.chain((tie[0] + 1, tie[1] + 1), lag=0.2, swing=0.0, back=-1,
+                               curl=0.2, splay=0.28)
+    else:
+        far_pts = tails.chain((tie[0] - 1, tie[1]), lag=lag_prev, swing=swing, back=-1,
+                              curl=0.85, splay=1.0)
+        near_pts = tails.chain((tie[0] + 1, tie[1] + 1), lag=lag_prev * 0.8, swing=swing * 0.6,
+                               back=-1, curl=0.75, splay=0.8)
     body = Canvas()
     legs_y = 54 + bob
     far_leg, near_leg = (back, front) if near == "front" else (front, back)
@@ -263,12 +316,14 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
     xs = STAND_X if drawing == "side_stand" else LEG_X
     if tired and drawing != "side_stand":
         xs = {"front": LEG_X["front"] - 1, "back": LEG_X["back"] + 1}   # shorter stride
+    if tired:
+        body.patch(29, 35 + bob, FAR_DRAG_ARM)   # behind the torso and skirt
     arm = FAR_ARM.get(ARM_FOR.get(drawing, "mid"))
     if arm and not tired:
         ax, ay, rows_a = arm
         body.patch(ax, ay + bob, rows_a)
     paste_leg(body, far_leg, xs[far_key], legs_y, FAR)
-    if not tired:
+    if not tired and spin is None:
         body.patch(14, 16 + bob, LEEK)
     body.patch(32, 32 + bob, TORSO)
     body.patch(28, 44 + bob, skirt_rows(slag))
@@ -279,7 +334,9 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
             if ch != ".":
                 body.set(HX + i, HY + bob + j, ch)
     if tired:
-        body.patch(33, 34 + bob, DRAG_ARM)
+        body.patch(35, 34 + bob, LIMP_ARM)      # near arm hangs limp in front of her
+    elif spin is not None:
+        body.patch(37, 34 + bob, SPIN_ARM)
     else:
         body.patch(35, 34 + bob, CARRY_ARM)
     rows_now = lean_rows(["".join(r) for r in body.g], lean, 44 + bob, neck=31 + bob)
@@ -297,16 +354,22 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
                 new.append(rows_now[y])
         rows_now = new
     body.g = [list(r) for r in rows_now]
-    if tired:   # the dragged leek: stalk from the hand down to the leaves on the ground
-        drag_stalk(body, 34, 46, 22, 64, bob)
-        body.patch(8, 61, DRAG_LEAVES)
+    if tired:   # the far arm, behind her, drags the leek: stalk down to leaves on the ground
+        drag_stalk(body, 31, 46, 20, 64, bob)
+        body.patch(6, 61, DRAG_LEAVES)
+    body_front_x = max(x for y in range(c.h) for x in range(c.w)
+                       if body.g[y][x] != "." and y <= BASELINE)
     # tails: far tail behind everything, near tail in front of the body
-    tails.draw(c, far_pts)
+    tails.draw(c, far_pts, far=True)
     for y in range(c.h):
         for x in range(c.w):
             if body.g[y][x] != ".":
                 c.g[y][x] = body.g[y][x]
     near_meta = tails.draw(c, near_pts)
+    if spin is not None and not tired:   # the spinning leek, in front; never over her face
+        head = {(x, y) for y in range(c.h) for x in range(c.w)
+                if y < 33 + bob and c.g[y][x] != "."}          # the leek passes behind her head
+        spin_leek(c, spin, bob, head)
     # ground shadow under the feet (same dim colour and shape as the front poses)
     for dy, half in ((1, 18), (2, 22), (3, 16)):
         y = BASELINE + dy
@@ -316,5 +379,8 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
     meta = {"view": "three_quarter" if three_q else "side", "facing": "right",
             "drawing": "three_quarter" if three_q else drawing, "bob": bob,
             "tie_anchor": tie, "tail_far": [list(p) for p in far_pts],
+            "leek_angle": None if spin is None else spin * 45,
+            "body_front_x": body_front_x,
+            "tail_front_x": max(x for x, _ in c.tail_cells) if getattr(c, "tail_cells", None) else None,
             "tail_near": near_meta}
     return c.rows(), meta

@@ -9,31 +9,41 @@ Alternatives replace only eye / fringe / mouth rows of the face part.
 
 from __future__ import annotations
 
-TOP = [
-    "............BBBBBBBB..............",
-    ".........BBBAAAAAAAABBB...........",
-    ".......BBAAAAAAAAAAAAAABB.........",
-    "......BAAAAAAGGGGGAAAAAAAB........",
-    ".....BAAAAAGGAAAAAAAAAAAAAB.......",
-    "....BAAAAAGAAAAAAAAAAAAAAAAB......",
-    "..BBBBAAAAAAAAAAAAAAAAAAAAAAB.....",
-    "..BSBBCAAAAAAAAAAAAAAAAGGAAAAB....",
-    "..BBSBCAAAAAAAAAAAAAAAAAAGGAAAB...",
-    "..BSBSCCAAAAAAAAAAAAAAAAAAAAAAAB..",
-    "..BBSBCCAAAAAAAAAAAAAAAAAAAAAAAB..",
-    "..BSBBCAAAAAAAAAAAAAAAAAAAAAAAAAB.",
-    "..BBBBCAAAAAAAAAAAAAAAAAAAAAAAAAB.",
-    "...BCCAAAAAAAAAAAAAAAAAAAAAAAAAAB.",
-    "...BCAAAAAAAAAAACAAAAAACAAAAAAAAAB",
-    "..BCCAAAAAAAAAAACAAAAACAAAAAACAAAB",
-    "..BCAAAAAAAAAAACAAAACAAAACAAAAAAB.",
-    "..BCAAAAAAAAACAAAACEEAACEEAAACAAB.",
+TOP = [  # rounded crown and back of the head (no flat top), widest at rows 11-13
+    "..............BBBBB...............",
+    "...........BBBAAAAABBB............",
+    ".........BBAAAAAAAAAAABB..........",
+    "........BAAAAAAGGGGGAAAAB.........",
+    ".......BAAAAAGGAAAAAAAAAAB........",
+    "......BAAAAAGAAAAAAAAAAAAAB.......",
+    ".....BAAAAAAAAAAAAAAAAAAAAAB......",
+    "....BAAAAAAAAAAAAAAAAAGGAAAAB.....",
+    "...BCAAAAAAAAAAAAAAAAAAAGGAAAB....",
+    "..BCCAAAAAAAAAAAAAAAAAAAAAAAAAB...",
+    "..BCAAAAAAAAAAAAAAAAAAAAAAAAAAAB..",
+    ".BCCAAAAAAAAAAAAAAAAAAAAAAAAAAAAB.",
+    ".BCAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB.",
+    ".BCCAAAAAAAAAAAAAAAAAAAAAAAAAAAAB.",
+    ".BCCCAAAAAAAAAACAAAAAACAAAAAAAAAB",
+    ".BCCCAAAAAAAAAACAAAAACAAAAAACAAAB",
+    ".BCCAAAAAAAAAACAAAACAAAACAAAAAAB.",
+    ".BCCAAAAAAAAACAAAACEEAACEEAAACAAB.",
 ]
 
-BACK = {
-    18: "..BCAAAAAAAAA", 19: "..BCAAAAAAAAA", 20: "..BCAAAAAAAAA", 21: "..BCAAAAAAAAA",
-    22: "...BCAAAAAAAA", 23: "...BCAAAAAAAA", 24: "....BCAAAAAAA", 25: "....BCAAAAAAA",
-    26: ".....BCAAAAAA", 27: "......BCCAAAA", 28: ".......BBCCAA", 29: ".........BBBB",
+NEAR_TIE = [   # the near-side hair tie: a dark block with red diagonal stripes (cols 5-9)
+    ".BBB.",
+    "BSBBB",
+    "BBSBB",
+    "BSBSB",
+    "BBSBB",
+    "BSBBB",
+    ".BBB.",
+]
+
+BACK = {  # layered locks with teal strand lines; the nape ends in points, not a helmet curve
+    18: "..BCAAACAAAAA", 19: "..BCAAAACAAAA", 20: "..BCAAAAACAAA", 21: "..BCCAAAAACAA",
+    22: "...BCAAAAAACA", 23: "...BCCAAAAAAC", 24: "....BCAAAAAAA", 25: "....BCCAAAAAA",
+    26: ".....BCAACAAA", 27: "....BCAB.BCAA", 28: "....BAB..BBCA", 29: ".....B....BBB",
     30: ".............", 31: ".............", 32: ".............", 33: ".............",
 }
 LOCK = {y: "BCAB" for y in range(18, 23)}               # steps back, then tapers to a point
@@ -102,6 +112,19 @@ EXTRA = {
         25: "EEEEEEEEEEEEEEEB.",
         26: "EEEEEEEEEEEEEEEB.",
     },
+    "cheery": {   # bright open eye (P5) with two highlights, wide open happy mouth, blush
+        19: "EEEEEEBBBBBBAACB.",
+        20: "EEEEEEBFFFFFBECB.",
+        21: "EEEEEEEFGLCFEEEB.",
+        22: "EEEEEEEFGLCFEEEB.",
+        23: "EEEEEEECCCCCEEEB.",
+        24: "EEEEEEECAAGCEEEEB",
+        25: "EEEEEEECAAACEEEB.",
+        26: "EUUUUEEEBBBEEEEB.",
+        27: "EEEEEEEEEEEEEEEB.",
+        28: "EEEEEEEEEEEESSSB.",
+        29: "EEEEEEEEEEEEVVB..",
+    },
     "three_quarter": {   # turned toward the viewer: near eye large, far eye narrow, mouth centred
         18: "EEACEEEEACEAAAAB.",
         19: "EBBBBBBEEEEBBBAB.",
@@ -130,14 +153,14 @@ NOTES = {
 
 # fringe: three locks swept forward, separation lines stepping forward one px per row,
 # tips at increasing depth (back lock shortest, front lock over the eye's front corner)
-FRINGE = {  # rows 14-16, cols 14-33
-    14: "ACAAAAACAAAAACAAAAAB",
-    15: "AACAAAAACAAAAACAAAAB",
-    16: "AAACAAAAACAAAAACAAB.",
+FRINGE = {  # rows 14-16, cols 14-33: strand lines at uneven spacing and length, two highlights
+    14: "AACAAAAAGCAAAACAAAAB",
+    15: "AAACAAAAGACAAAACAAAB",
+    16: "AAAACAAAAAACAAACAAAB",
 }
 FRINGE_FACE = {  # rows 17-20, cols 17-33 (applied before the alternative's overrides)
-    17: "ACEAAAACEAAAACAB.",
-    18: "CEEEEAACEAAAAAAB.",
+    17: "ACEAAAACEAAAACAAB",
+    18: "CEEEEAACEAAAAAACB",
     19: "EEEEEEBBBBBBAACB.",
     20: "EEEEEEEFFFFBBECB.",
 }
@@ -153,9 +176,13 @@ def head_rows(alt: str = "A") -> list[str]:
     rows[17] = rows[17][:13] + "BCAB" + (ALTS[alt] if alt in ALTS else EXTRA[alt]).get(17, FRINGE_FACE[17])
     for y in range(18, 34):
         rows.append(BACK[y] + LOCK[y] + face[y])
+    for j, r in enumerate(NEAR_TIE):          # near-side hair tie on top of the hair
+        y = 6 + j
+        rows[y] = "".join(ch if ch == "." else ch for ch in rows[y])
+        rows[y] = rows[y][:5] + "".join(t if t != "." else o for t, o in zip(r, rows[y][5:10])) + rows[y][10:]
     bad = [(i, len(r)) for i, r in enumerate(rows) if len(r) != 34]
     assert not bad, bad
     return rows
 
 
-TIE_ANCHOR = (3, 12)
+TIE_ANCHOR = (7, 12)   # bottom of the near hair tie
