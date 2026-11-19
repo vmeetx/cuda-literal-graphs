@@ -100,8 +100,9 @@ def drag_stalk(c, x0, y0, x1, y1, bob):
 
 
 FAR_ARM = {  # the far arm, behind the body, swinging against the legs
-    "fwd": (41, 39, [".BDDB.", ".BDDMB", "..BDMB", "..BAAB", "...BEB", "...BB."]),
-    "back": (29, 39, [".BDDB.", "BMDDB.", "BMDB..", "BAAB..", "BEB...", ".BB...."]),
+    # far side, so in the shadow colours: sleeve shadow grey, teal cuff, shaded hand
+    "fwd": (42, 38, [".BMMB..", ".BMMMB.", "..BMMMB", "...BMMB", "...BCCB", "....BPB", "....BB."]),
+    "back": (27, 38, ["..BMMB.", ".BMMMB.", "BMMMB..", "BMMB...", "BCCB...", "BPB....", ".BB...."]),
     "mid": None,
 }
 ARM_FOR = {"contact_r": "fwd", "down_r": "fwd", "pass_r": "mid", "up_r": "back",
@@ -161,23 +162,23 @@ LEGS = {  # 12 wide x 13 tall; hip roughly at columns 1-4 of the box
         "....ossso...", "...ossso....", "...obbbo....", "...obbbbo...", "...oooooo...",
         "............", "............", "............"],
 }
-NEAR = {"o": "B", "s": "F", "c": "A", "b": "B"}
+NEAR = {"o": "B", "s": "F", "c": "A", "b": "F"}
 FAR = {"o": "B", "s": "M", "c": "C", "b": "B"}
 
 # walk drawings: (front-leg shape, back-leg shape, which leg is near, bob, skirt lag)
 # "near" = the leg on the viewer's side. R = right (near) leg forward.
 WALK = {
     "contact_r": ("front_contact", "back_contact", "front", 0, 0),
-    "down_r":    ("front_down", "back_down", "front", 1, -1),
+    "down_r":    ("front_down", "back_down", "front", 2, -1),
     "pass_r":    ("support", "swing_back", "back", 0, -1),
-    "up_r":      ("swing_front", "support_up", "back", -1, 0),
+    "up_r":      ("swing_front", "support_up", "back", -2, 0),
     "contact_l": ("front_contact", "back_contact", "back", 0, 0),
-    "down_l":    ("front_down", "back_down", "back", 1, -1),
+    "down_l":    ("front_down", "back_down", "back", 2, -1),
     "pass_l":    ("support", "swing_back", "front", 0, -1),
-    "up_l":      ("swing_front", "support_up", "front", -1, 0),
+    "up_l":      ("swing_front", "support_up", "front", -2, 0),
 }
 WALK["side_stand"] = ("support", "support", "front", 0, 0)
-LEG_X = {"front": 38, "back": 33}
+LEG_X = {"front": 41, "back": 30}
 STAND_X = {"front": 38, "back": 35}   # box x of each leg shape (front leg ahead of the back leg)
 
 
@@ -248,8 +249,12 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
     c = Canvas()
     # back-to-front: far tail, far leg, leek, torso/skirt, near leg, head, near tail, arm
     tie = (HX + side_head.TIE_ANCHOR[0], HY + side_head.TIE_ANCHOR[1] + bob)
-    far_pts = tails.chain((tie[0] - 1, tie[1]), lag=lag_prev, swing=swing, back=-1, curl=0.10)
-    near_pts = tails.chain(tie, lag=lag_prev, swing=-swing, back=-1, curl=0.22)
+    # two distinct tails: the far one angles back, the near one hangs nearly straight and
+    # curls forward so it crosses in front of the skirt
+    far_pts = tails.chain((tie[0] - 1, tie[1]), lag=lag_prev, swing=swing, back=-1, curl=0.05,
+                          splay=0.42)
+    near_pts = tails.chain((tie[0] + 3, tie[1] + 1), lag=lag_prev * 0.6, swing=swing * 0.4, back=-1,
+                           curl=-0.10, splay=0.08)
     body = Canvas()
     legs_y = 54 + bob
     far_leg, near_leg = (back, front) if near == "front" else (front, back)
@@ -277,7 +282,7 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
         body.patch(33, 34 + bob, DRAG_ARM)
     else:
         body.patch(35, 34 + bob, CARRY_ARM)
-    rows_now = lean_rows(["".join(r) for r in body.g], lean, 44 + bob)
+    rows_now = lean_rows(["".join(r) for r in body.g], lean, 44 + bob, neck=31 + bob)
     if tired:   # head 2 px lower and 1 px forward, shoulders 1 px lower: a rounded back
         def sh(r, k):
             return ("." * k + r[:-k]) if k else r
@@ -285,7 +290,7 @@ def pose_side(drawing="contact_r", head="A", lag_prev=0.0, swing=0.0, alt=None, 
         for y in range(len(rows_now)):
             if y < 31 + bob:
                 src = rows_now[y - 2] if y >= 2 else "." * len(rows_now[0])
-                new.append(sh(src, 1))
+                new.append(sh(src, 2))
             elif y < 44 + bob:
                 new.append(rows_now[y - 1])
             else:

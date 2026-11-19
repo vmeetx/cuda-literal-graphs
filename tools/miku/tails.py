@@ -14,11 +14,12 @@ from __future__ import annotations
 import math
 
 
-def chain(anchor, n=17, seg=2.85, lag=0.0, swing=0.0, back=-1, curl=0.18):
-    """Points of one tail. back=-1 trails to the left (she faces right)."""
+def chain(anchor, n=17, seg=2.85, lag=0.0, swing=0.0, back=-1, curl=0.18, splay=0.16):
+    """Points of one tail. back=-1 trails to the left (she faces right); `splay` sets how far
+    the tail angles away from vertical at the tie (far tail more, near tail less)."""
     x, y = anchor
     pts = [(x, y)]
-    ang = math.pi / 2 + back * (0.16 + 0.10 * lag)   # radians from +x; pi/2 = straight down
+    ang = math.pi / 2 + back * (splay + 0.10 * lag)   # radians from +x; pi/2 = straight down
     for i in range(1, n):
         t = i / n
         a = ang - back * (curl * t) + back * 0.05 * lag * (1 - t) + swing * math.sin(t * 3.0)
@@ -33,7 +34,7 @@ def radius(i, n, r0=6.6, r1=3.0):
     bulge = math.sin(min(t * 1.6, 1.0) * math.pi / 2)        # swell just below the tie
     r = r1 + (r0 - r1) * (1 - t) * (0.75 + 0.25 * bulge)
     if t > 0.66:                                              # the tip flares out again
-        r += 2.2 * math.sin((t - 0.66) / 0.34 * math.pi / 2)
+        r += 1.2 * math.sin((t - 0.66) / 0.34 * math.pi / 2)
     return r
 
 
