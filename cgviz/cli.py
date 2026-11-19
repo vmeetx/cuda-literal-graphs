@@ -29,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--fit", action="store_true", help="use the terminal size")
     common.add_argument("--out", type=Path, default=None, help="output base directory")
 
-    p = argparse.ArgumentParser(prog="cgviz", description="Draw CUDA graphs as graphs.")
+    p = argparse.ArgumentParser(prog="cgviz", description="Draw captured CUDA graphs as graphs.")
     sub = p.add_subparsers(dest="command", required=True)
     anim = argparse.ArgumentParser(add_help=False)
     anim.add_argument("--no-miku", action="store_true", help="static graph only")
@@ -104,7 +104,7 @@ def _graph_pipeline(args: argparse.Namespace, workload: Any, inputs: Any,
         capture.dump_dot(graph, out / "graph.dot")
     except RuntimeError:
         pass
-    show_graph(args, graph.data, roles, title or args.command, out)
+    show_graph(args, graph.data, roles, title or args.command, out, graph.provenance)
 
 
 def layout_width(args: argparse.Namespace) -> int:
@@ -116,23 +116,28 @@ def layout_width(args: argparse.Namespace) -> int:
 
 
 def show_graph(args: argparse.Namespace, data: dict, roles: list[str] | None, title: str,
-               out: Path | None = None) -> str:
-    """Draw the graph (and, in a terminal, let Miku walk it). Returns the static text."""
-    from cgviz import draw, walk
+               out: Path | None = None, prov=None) -> str:
+    """Draw the captured graph (and, in a terminal, let Miku walk it). Returns the static
+    text, which starts with the provenance header."""
+    from cgviz import draw, provenance, walk
 
     width = layout_width(args)
     lay, nodes, cn, ce = draw.layout(data, roles, width)
     tty = sys.stdout.isatty()
     pic = draw.to_ansi(lay) if tty else draw.to_text(lay)
     lst = draw.node_list(nodes, cn, width, full=getattr(args, "full_names", False))
-    static = pic + "\n\n" + lst
+    head = (prov or provenance.Provenance()).header()
+    static = head + "\n\n" + pic + "\n\n" + provenance.KERNEL_NOTE + "\n" + lst
     if out is not None:
-        (out / "graph.txt").write_text(draw.to_text(lay) + "\n\n" + lst + "\n", encoding="utf-8")
+        (out / "graph.txt").write_text(head + "\n\n" + draw.to_text(lay) + "\n\n"
+                                       + provenance.KERNEL_NOTE + "\n" + lst + "\n",
+                                       encoding="utf-8")
     if not getattr(args, "no_miku", True) and show.can_animate():
         alay, _, acn, ace = draw.layout(data, roles, width, prefer=(lay.orient,),
                                         node_gap=show.NODE_GAP[lay.orient])
         frames = walk.Walk(alay, acn, ace, speed=args.speed).frames()
-        show.play(alay, acn, frames, title=f"cgviz {title}", panel=not args.no_panel)
+        show.play(alay, acn, frames, title=f"cgviz {title} · captured graph",
+                  panel=not args.no_panel)
     show.print_static(static)
     return static
 

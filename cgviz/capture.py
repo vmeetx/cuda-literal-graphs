@@ -15,6 +15,7 @@ class Captured:
     graph: Any            # torch.cuda.CUDAGraph, captured with keep_graph=True
     output: Any           # static output tensor written by replay
     data: dict            # graph.get_graph_data(): nodes with types, kernel names, deps
+    provenance: Any = None  # cgviz.provenance.Provenance recorded during capture
 
 
 def _torch():
@@ -50,13 +51,71 @@ def capture(workload: Callable[..., Any], static_inputs: Sequence[Any]) -> Captu
     torch.cuda.current_stream().wait_stream(s)
     torch.cuda.synchronize()
     g = torch.cuda.CUDAGraph(keep_graph=True)
+    rec = _Recorder(torch)
     try:
         with torch.cuda.graph(g):
-            out = workload(*static_inputs)
+            with rec:
+                out = workload(*static_inputs)
         g.instantiate()
     except Exception as e:
         raise RuntimeError(f"capture failed: {type(e).__name__}: {e}") from e
-    return Captured(graph=g, output=out, data=g.get_graph_data())
+    return Captured(graph=g, output=out, data=g.get_graph_data(), provenance=rec.provenance())
+
+
+def _shape(t) -> str:
+    return "x".join(str(d) for d in t.shape)
+
+
+class _Recorder:
+    """While capturing: which CUDA streams issued work, and the shapes of GEMM-type calls."""
+
+    def __init__(self, torch):
+        from torch.overrides import TorchFunctionMode
+
+        self.torch = torch
+        self.streams: set[int] = set()
+        self.shapes: list[str] = []
+        rec = self
+        F = torch.nn.functional
+        gemms = {torch.matmul, torch.Tensor.__matmul__, torch.mm, torch.bmm, torch.addmm,
+                 torch.baddbmm, F.linear}
+
+        class Mode(TorchFunctionMode):
+            def __torch_function__(self, func, types, args=(), kwargs=None):
+                kwargs = kwargs or {}
+                rec.streams.add(torch.cuda.current_stream().cuda_stream)
+                if func in gemms:
+                    try:
+                        if func is F.linear:
+                            x, w = args[0], args[1]
+                            s = f"{_shape(x)} @ {w.shape[1]}x{w.shape[0]}"
+                        elif func in (torch.addmm, torch.baddbmm):
+                            s = f"{_shape(args[1])} @ {_shape(args[2])}"
+                        else:
+                            s = f"{_shape(args[0])} @ {_shape(args[1])}"
+                        if s not in rec.shapes:
+                            rec.shapes.append(s)
+                    except Exception:
+                        pass
+                return func(*args, **kwargs)
+
+        self.mode = Mode()
+
+    def __enter__(self):
+        self.mode.__enter__()
+        return self
+
+    def __exit__(self, *exc):
+        return self.mode.__exit__(*exc)
+
+    def provenance(self):
+        from cgviz.provenance import Provenance, cublas_version
+
+        torch = self.torch
+        return Provenance(streams=len(self.streams) or None,
+                          gpu=torch.cuda.get_device_name(),
+                          cuda=str(torch.version.cuda), cublas=cublas_version(),
+                          shapes=self.shapes)
 
 
 def check_replay(graph: Captured, workload: Callable[..., Any], static_inputs: Sequence[Any]) -> bool:
@@ -94,4 +153,7 @@ def dump_dot(graph: Captured, path: Path) -> Path:
 def save_data(graph: Captured, path: Path) -> Path:
     """Write the graph data as JSON (the drawer's input)."""
     Path(path).write_text(json.dumps(graph.data, indent=1), encoding="utf-8")
+    if graph.provenance is not None:
+        Path(path).with_name("provenance.json").write_text(
+            json.dumps(graph.provenance.to_dict(), indent=1), encoding="utf-8")
     return Path(path)
