@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 FPS = 12
 STOP_FRAMES = 14       # time standing at a node, at --speed 1
 VICTORY_FRAMES = 30
+FORK_NOTE = "independent: neither waits for the other"
 WAIT_BACK = 13         # cells before the meeting point where walkers wait at a join
 SPRITE_GAP = 13        # cells a walker gets ahead before its sibling leaves a fork
 HOP = (0, 0, -1, -2, -3, -3, -2, -1, 0, 0, 0, 0)  # victory hop, pixels
@@ -138,6 +139,7 @@ class Walk:
         self.arrived: dict[int, list[Walker]] = {}
         self.visits: list[int] = []
         self.caption = ""
+        self.fork_caption: tuple[int, str] | None = None   # (frames left, text)
         self.trace: list[tuple[int, tuple]] = []   # (walker id, pos) for every frame
         self.splits: dict[int, int] = {}           # node -> walkers it split into
         self.merges: list[tuple[int, int]] = []    # (node, walkers that had arrived)
@@ -177,6 +179,10 @@ class Walk:
                 k.state, k.timer = "hold", i * gap
             kids.append(k)
         self.splits[n] = len(kids)
+        if len(kids) > 1:
+            labels = ", ".join(self.nodes[v]["label"] for v in self.succ[n])
+            text = f"{self.nodes[n]['label']} → {labels}  ·  {FORK_NOTE}"
+            self.fork_caption = (max(self.stop_frames * 2, len(kids) * SPRITE_GAP), text)
         return "split" if len(kids) > 1 else ""
 
     def _send(self, w, u, v):
@@ -203,6 +209,7 @@ class Walk:
         for s in [n for n in sorted(self.nodes) if not self.pred.get(n)]:
             w = self._new(self.route[s][1])
             self._arrive(w, s)
+            w.timer += 1        # the first frame counts down before it is drawn: same hold as others
         frame_no = 0
         budget = 0.0
         while frame_no < limit:
@@ -268,7 +275,14 @@ class Walk:
             if any(w.state == "victory" for w in self.walkers) and not event:
                 event = "victory"
             caption = self.caption
-            if not hl:   # everyone is on the move: say where they are heading, and from where
+            # right after a fork, while nobody is stopped yet, name the branches
+            hl_override = False
+            if self.fork_caption and self.fork_caption[0] > 0:
+                self.fork_caption = (self.fork_caption[0] - 1, self.fork_caption[1])
+                if not hl:
+                    caption = self.fork_caption[1]
+                    hl_override = True
+            if not hl and not hl_override:   # everyone is on the move: say where they are heading, and from where
                 heading: dict[str, list[str]] = {}
                 for w in sorted(self.walkers, key=lambda x: x.id):
                     if w.node is not None and w.state in ("walk", "hold", "wait"):

@@ -4,6 +4,14 @@ I thought CUDA graphs were graphs, so I made them graphs.
 
 ![demo](TODO.gif)
 
+## What you're looking at
+
+`cgviz` draws a **captured graph**: the CUDA graph PyTorch recorded while running a workload once, with every kernel, memset and dependency it contains. Each run starts with a provenance header naming the stream count during capture, the GPU, the CUDA and cuBLAS versions and the main GEMM shapes. Kernel names are the ones chosen at capture for those shapes on that GPU.
+
+A fork in the captured graph means its branches are independent: neither waits for the other. That is what makes it possible for the GPU to run them in parallel, but the captured graph only records the dependencies. If the workload issued everything on a single stream, the capture is a plain chain and no parallelism can appear in it.
+
+The walk has no time axis: it shows structure, not timing. Miku walks at the same pace everywhere, and where she pauses depends only on what kind of node it is and where it sits.
+
 ## What it does
 
 - `cgviz demo`: TODO
