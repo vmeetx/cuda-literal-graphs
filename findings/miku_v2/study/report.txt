@@ -1,0 +1,19 @@
+source assets/reference/miku_ref.png (860, 860)
+pitch x 8.960 phase 7.75
+pitch y 8.960 phase 8.00
+grid 95 x 95 cells
+distinct source colours 28296
+palette 13 colours
+  A #73c7dc
+  B #14172e
+  C #ced8dd
+  D #3e808d
+  E #fdede1
+  F #d7f8fe
+  G #4f697a
+  H #2f3e52
+  I #41af34
+  J #fad9c8
+  K #8099a8
+  L #c04449
+  M #db8686

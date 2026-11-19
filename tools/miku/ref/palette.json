@@ -1,0 +1,58 @@
+{
+ "A": {
+  "hex": "#73c7dc",
+  "name": "hair cyan"
+ },
+ "B": {
+  "hex": "#14172e",
+  "name": "outline navy"
+ },
+ "C": {
+  "hex": "#ced8dd",
+  "name": "pale grey (stalk, ground shadow)"
+ },
+ "D": {
+  "hex": "#3e808d",
+  "name": "hair shadow teal"
+ },
+ "E": {
+  "hex": "#fdede1",
+  "name": "skin"
+ },
+ "F": {
+  "hex": "#d7f8fe",
+  "name": "hair highlight"
+ },
+ "G": {
+  "hex": "#4f697a",
+  "name": "skirt grey"
+ },
+ "H": {
+  "hex": "#2f3e52",
+  "name": "dark slate (iris, inner hair line)"
+ },
+ "I": {
+  "hex": "#41af34",
+  "name": "leek green"
+ },
+ "J": {
+  "hex": "#fad9c8",
+  "name": "skin shade"
+ },
+ "K": {
+  "hex": "#8099a8",
+  "name": "pleat / top shading grey-blue"
+ },
+ "L": {
+  "hex": "#c04449",
+  "name": "hair-tie red"
+ },
+ "M": {
+  "hex": "#db8686",
+  "name": "blush pink"
+ },
+ "W": {
+  "hex": "#f4f7f9",
+  "name": "top white"
+ }
+}
