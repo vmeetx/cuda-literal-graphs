@@ -1,0 +1,6 @@
+P1: torso mirror similarity 0.50 (ok); straight cloth/limb outline runs > 5 px: 1 (v x39 y46-51)
+P2: torso mirror similarity 0.40 (ok); straight cloth/limb outline runs > 5 px: 0 
+P3: torso mirror similarity 0.55 (ok); straight cloth/limb outline runs > 5 px: 0 
+P4: torso mirror similarity 0.53 (ok); straight cloth/limb outline runs > 5 px: 0 
+P5: torso mirror similarity 0.43 (ok); straight cloth/limb outline runs > 5 px: 1 (h y34 x26-33)
+P6: torso mirror similarity 0.40 (ok); straight cloth/limb outline runs > 5 px: 2 (v x36 y46-56, v x42 y38-45)

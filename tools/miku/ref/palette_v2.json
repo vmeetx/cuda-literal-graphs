@@ -1,0 +1,82 @@
+{
+ "G": {
+  "hex": "#caf1fa",
+  "name": "hair highlight"
+ },
+ "A": {
+  "hex": "#6fcbe2",
+  "name": "hair cyan"
+ },
+ "C": {
+  "hex": "#3c8698",
+  "name": "hair shadow teal"
+ },
+ "B": {
+  "hex": "#111d37",
+  "name": "outline navy"
+ },
+ "F": {
+  "hex": "#21364d",
+  "name": "dark slate: socks, boots, iris"
+ },
+ "L": {
+  "hex": "#d3d6da",
+  "name": "top light grey"
+ },
+ "N": {
+  "hex": "#aab2bc",
+  "name": "top grey"
+ },
+ "K": {
+  "hex": "#758391",
+  "name": "top shade / pleat line"
+ },
+ "D": {
+  "hex": "#4c6377",
+  "name": "skirt and sleeve grey"
+ },
+ "M": {
+  "hex": "#3f485a",
+  "name": "skirt and sleeve shadow"
+ },
+ "E": {
+  "hex": "#f5eae2",
+  "name": "skin"
+ },
+ "P": {
+  "hex": "#f3c4be",
+  "name": "skin shade"
+ },
+ "U": {
+  "hex": "#e09999",
+  "name": "blush"
+ },
+ "S": {
+  "hex": "#b14551",
+  "name": "hair-tie red, mouth"
+ },
+ "V": {
+  "hex": "#713444",
+  "name": "mouth inside"
+ },
+ "b": {
+  "hex": "#91c880",
+  "name": "leek stalk pale green"
+ },
+ "I": {
+  "hex": "#43a635",
+  "name": "leek green"
+ },
+ "X": {
+  "hex": "#2f6d3a",
+  "name": "leek shadow green"
+ },
+ "O": {
+  "hex": "#4c5a78",
+  "name": "outer outline slate (terminal)"
+ },
+ "Z": {
+  "hex": "#3b4350",
+  "name": "ground shadow (terminal)"
+ }
+}

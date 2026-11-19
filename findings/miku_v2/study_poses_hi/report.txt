@@ -1,0 +1,34 @@
+source assets/reference/miku_poses.png (1344, 896)
+pitch x 6.170 phase 1.25
+pitch y 6.170 phase 1.25
+grid 217 x 145 cells
+distinct source colours 79908
+palette 28 colours
+  A #6fcbe2
+  B #111d37
+  C #3c8698
+  D #4c6377
+  E #f5eae2
+  F #21364d
+  G #caf1fa
+  H #5fadc2
+  I #43a635
+  J #2c586d
+  K #758391
+  L #d3d6da
+  M #3f485a
+  N #aab2bc
+  O #a2deec
+  P #f3c4be
+  Q #909ba7
+  R #bec7cc
+  S #b14551
+  T #392439
+  U #e09999
+  V #713444
+  W #174532
+  X #2f6d3a
+  Y #d77e80
+  Z #589355
+  a #aa7880
+  b #91c880

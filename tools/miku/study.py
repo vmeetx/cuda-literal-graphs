@@ -81,7 +81,7 @@ def cluster(cells, thresh=34.0):
     return centres.round().astype(int), np.array(weights), lab
 
 
-def main(src, out, thresh="34"):
+def main(src, out, thresh="34", pitch=None, phase=None):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     im = Image.open(src).convert("RGB")
@@ -91,6 +91,10 @@ def main(src, out, thresh="34"):
     p1, phx = fit_grid(px)
     p2, phy = fit_grid(py)
     p = (p1 + p2) / 2
+    if pitch:   # resample on a finer grid aligned with the native one (normalising size)
+        p = p1 = p2 = float(pitch)
+        if phase is not None:
+            phx = phy = float(phase)
     cells = sample(a, p, phx, phy)
     centres, weights, lab = cluster(cells, float(thresh))
     # background = the brightest, most common near-white cluster

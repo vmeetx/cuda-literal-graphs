@@ -1,159 +1,99 @@
-# Miku v2: the reference, extracted
+# Miku v2: the reference model
 
-The target design is `assets/reference/miku_ref.png`, an 860×860 image. This document records how its native pixel grid was recovered, the palette, every correction made to the reference's artefacts, and the resulting front idle frame. That frame is the ground truth for proportions and colours from here on.
+The first GATE 1 was rejected (Addendum 1). Its torso, tie, arms, hands, skirt and leek were built from rectangles and came out stiff. What carries over from it:
+- the grid-extraction method
+- the slate outer outline over navy inner lines
+- the dim ground shadow
+- the stray-pixel cleanup
+- the palette naming.
 
-![reference, grid at 1x, grid at 8x](miku_v2/gate1_reference_vs_grid.png)
+The design authority is now the six-pose sheet, `assets/reference/miku_poses.png`. The first reference, `miku_ref.png`, is only a fallback for anything the sheet doesn't show.
 
-## Recovering the grid
+![model sheet: six poses at 8x and 1x on one baseline, above the source sheet](miku_v2/gate1b_model_sheet.png)
 
-The reference is pixel art that was scaled up and softened: it contains 28,296 distinct colours and blurred block edges.
+## Extraction
 
-- **Pitch.** The study step measures how sharply colour changes between neighbouring image pixels, then fits a regular grid to where those changes cluster, trying non-integer pitches and phases. The best fit is a pitch of **8.96 image pixels per art pixel** on both axes (phase 7.75 horizontally, 8.0 vertically), giving a 95×95 grid over the whole image. The brief estimated about 8.6; the measured value fits the edges better.
-- **Sampling.** Each cell takes the median colour of its central half, which ignores the blurred borders between blocks.
-- **Palette.** Similar colours were merged until the materials stopped splitting further. A tight threshold keeps the skirt grey, the hair's dark teal shadow and the skin shade as separate colours, as the reference shows them. A loose one merges them. The result is 13 colours plus one recovered white.
-- **Size.** Cropped to her body and ground shadow, the native front frame is **66 × 69 pixels** (66 wide, 69 tall). The body without the shadow is 62 pixels tall, which is **31 terminal rows** in half-block rendering.
+**The sheet has no reliable native grid.** It's 1344×896. Fitting a grid to its colour edges finds a strongest pitch of about 8.95 image pixels, the same as the first reference. But that fit is weak: edge energy on the grid lines is only 1.5–1.6× the average, against 5.3× for the first reference. The sheet also carries detail finer than that pitch, especially in the faces. Sampled on the 8.95 grid, the poses come out 46×45 pixels and the faces are destroyed.
 
-The study outputs (zoom, swatch, silhouette, report) are in `findings/miku_v2/study/`.
+**So each pose is sampled straight from the high-resolution sheet at the normalisation scale.** The pitch is 6.17 image pixels, chosen so the six poses come out at the same height as the GATE 1 measurement. Each cell takes the median colour of its central half. The result is six poses of 65–70 by 65–67 pixels, all at the same pixel scale, with faces, hands and the tie readable.
+
+**Normalising to one character:**
+- **Height:** every pose is 67 pixels from the top of her head to the soles of her boots.
+- **Baseline:** all six boot soles sit on the same row, row 67 of a shared 74×72 canvas. A dim ground shadow is added under the feet.
+- **Palette:** one shared palette (below) for all six.
+- **Head and eyes:** no edits were needed to the head construction or eye shape. The six faces already match each other once they're on the same scale and palette.
+- **Sock bands, cuffs and hair ties** come out consistent across the poses at this scale, so no pose needed P1's version substituted.
 
 ## Palette
 
+One palette for all six poses, in ramps of two or three steps per material.
+
 | Letter | Hex | Name |
 |---|---|---|
-| A | #73c7dc | hair cyan (base) |
-| F | #d7f8fe | hair highlight |
-| D | #3e808d | hair shadow teal |
-| H | #2f3e52 | dark slate (iris, inner hair line) |
-| B | #14172e | outline navy |
-| L | #c04449 | hair-tie red |
-| E | #fdede1 | skin |
-| J | #fad9c8 | skin shade |
-| M | #db8686 | blush and mouth pink |
-| W | #f4f7f9 | top white (also eye white) |
-| K | #8099a8 | grey-blue: top shading and skirt pleat lines |
-| G | #4f697a | skirt grey |
-| I | #41af34 | leek green |
-| C | #ced8dd | pale grey: leek stalk, ground shadow on white |
+| G | #caf1fa | hair highlight |
+| A | #6fcbe2 | hair cyan |
+| C | #3c8698 | hair shadow teal |
+| B | #111d37 | outline navy |
+| F | #21364d | dark slate: socks, boots, iris |
+| L | #d3d6da | top light grey |
+| N | #aab2bc | top grey |
+| K | #758391 | top shade, pleat line |
+| D | #4c6377 | skirt and sleeve grey |
+| M | #3f485a | skirt and sleeve shadow |
+| E | #f5eae2 | skin |
+| P | #f3c4be | skin shade |
+| U | #e09999 | blush |
+| S | #b14551 | hair-tie red, mouth |
+| V | #713444 | mouth inside, hair-tie stripe shading |
+| b | #91c880 | leek stalk, pale green |
+| I | #43a635 | leek green |
+| X | #2f6d3a | leek shadow green |
+| O | #4c5a78 | outer outline slate (terminal) |
+| Z | #3b4350 | ground shadow (terminal) |
 
-Two colours are added for terminals only (see the contrast section): **O #4c5a78**, the outer silhouette outline, and **S #3b4350**, the ground shadow on a dark background.
+The 28 colours sampled from the sheet map onto these 18 body colours. Near-duplicates produced by compression and anti-aliasing merge into the material they belong to. The two terminal colours are carried over from the first GATE 1.
 
-## Corrections, with before and after
+## Corrections
 
-Following the reference in good faith meant keeping its design and fixing what is clearly an artefact of how it was made. Everything not listed here is exactly as extracted.
+Every correction is an edit to the extracted pixels; nothing was rebuilt. Each pose has a before/after view showing the raw resample, the pixels that changed (in red) and the cleaned result. The changes are scattered single pixels along edges. The pose, gesture, cloth flow and hands are untouched.
 
-1. **Stray squares and bar.** Three cyan squares in the top-right corner and a cyan bar in the bottom-right aren't part of her. They were removed as detached pieces, along with any other piece smaller than 40 cells.
+1. **Anti-alias halo removed** (47–89 pixels per pose). A light pixel on her outer edge, sitting outside the navy outline, is a blend of outline and white background. Pixels on the very edge of each pose's crop count as edge too.
+2. **Outline restored or tidied** (6–14 pixels per pose). Where the navy outline had faded to grey between the background and hair, it is navy again. A grey pixel outside the outline whose only neighbours are outline is removed.
+3. **Specks** (2–10 pixels per pose). A single off-material pixel surrounded on three or four sides by one hair or outline colour takes that colour. Hair-tie red and its stripe shading are never treated as specks.
+4. **Stray mouth colour** (1–5 pixels per pose). Mouth and blush colours found away from the face and away from the hair ties take the colour around them. An early version of this rule also caught the hair-tie stripes' dark half and erased the stripes. That was caught in review and fixed: the stripes are intact.
+5. **Islands:** none needed removing.
 
-   ![strays](miku_v2/fix_strays.png)
+| Pose | Before / changed / after |
+|---|---|
+| P1 | ![P1](miku_v2/gate1b_fix_P1.png) |
+| P2 | ![P2](miku_v2/gate1b_fix_P2.png) |
+| P3 | ![P3](miku_v2/gate1b_fix_P3.png) |
+| P4 | ![P4](miku_v2/gate1b_fix_P4.png) |
+| P5 | ![P5](miku_v2/gate1b_fix_P5.png) |
+| P6 | ![P6](miku_v2/gate1b_fix_P6.png) |
 
-2. **White read as background.** The white top and the eye whites are the same white as the image background, so the first pass made them transparent. Any background-coloured pocket fully enclosed by her outline and smaller than 30 cells was restored as top white. The larger enclosed gaps, between the left tail and her body and between her boots, really are background and stay transparent.
+Nothing was straightened, symmetrised or redrawn. Any anatomy defects left over (for example a hand that reads poorly at this size) are for your call at this gate.
 
-   ![whites](miku_v2/fix_whites.png)
+## Face library
 
-3. **Torso.** In the reference, the white top and the tie area don't resolve into anything readable. They were redrawn as a skin neck, white collar points either side, a cyan tie knot with the tie running down to a point and its teal shadow side, a white top with grey-blue shading on her left side, and bare skin shoulders and arms down both sides (the outfit is sleeveless). The colours and the width of the torso are the reference's.
+The six faces, taken straight from the poses: smile (P1), wink (P2), smug (P3), squeezed shut (P4), excited with mouth open (P5), and sleepy (P6). Surprised, panting and blink will be derived from these at the clip stage, as Addendum 1 specifies.
 
-   ![torso](miku_v2/fix_torso.png)
+![faces](miku_v2/gate1b_faces.png)
 
-4. **Leek, skirt and hem.** In the reference, no hand holds the leek, and the stalk runs across the hem toward her right tail, tangled with the skirt trim and the legs. The changes:
-   - **Leaves:** kept exactly.
-   - **Stalk:** now a clean diagonal from the leaves up to her right hand, which grips it (skin with a shade), ending inside the hand well before the tail.
-   - **Left hand:** rests at her side.
-   - **Skirt:** rebuilt behind the stalk as the reference's flared dark-grey skirt, with three lighter pleat lines fanning out from the waist and the cyan trim band above the hem.
-   - **Legs:** short skin legs onto the reference's own boots.
+## P1 in a real terminal
 
-   ![leek](miku_v2/fix_leek.png)
+P1, the master front frame, standing on a node. Rendered through the half-block renderer and the pyte screenshot tool with the slate outer outline, it is 34 rows tall.
 
-5. **Leftover pixel.** One outline pixel from the old stalk tip, right of the hem, was removed.
+![P1, dark terminal](miku_v2/gate1b_p1_terminal_dark.png)
 
-## Outline contrast on terminals
+![P1, light terminal](miku_v2/gate1b_p1_terminal_light.png)
 
-Navy is kept for every line inside the silhouette. For the outer silhouette edge only, three colours were tested on `#1e1e1e`, `#000000` and `#ffffff`:
-- **Reference navy:** disappears on both dark backgrounds, leaving her tails with no edge.
-- **Light slate:** reads on dark but looks washed out on white.
-- **Mid slate (#4c5a78):** keeps the silhouette clear on dark backgrounds and still reads as the reference's dark outline on white. **Chosen.**
+## Stiffness flags
 
-The ground shadow's pale grey is close to invisible on dark terminals. It becomes the dim **#3b4350**, which reads as a shadow on dark and is still a soft grey shape on white.
-
-![outline contrast](miku_v2/gate1_outline_contrast.png)
-
-## In a real terminal
-
-Rendered through the half-block renderer and the pyte screenshot tool, standing on a GEMM node, she is 31 rows tall plus 3 rows of shadow.
-
-![terminal, dark](miku_v2/gate1_terminal_dark.png)
-
-![terminal, light](miku_v2/gate1_terminal_light.png)
-
-## The front idle frame (66 × 69)
-
-One letter per pixel, `.` is transparent, letters as in the palette table. This is the frame before the terminal-only outer-outline and shadow colours are applied.
-
-```text
-..................................................................
-......................BB....................BB....................
-.................BBB.BBLBB....BBBBBBBB....BBLBB.BBBB..............
-................BDDDBBLBBB.BBBAAAAAAAABBBBBBBLBBDDDDBB............
-...............BAAABBBLBBBBAAAAAAAAAAAAAABBBBLBBBAAAADB...........
-..............BAAADBBLBBBFAAADAAAAAAAAAAAAFBBBLBBDAAAAFB..........
-.............BAAAABBLBBBFAAADAAAAAAAAAAAAAAFBBBLBBAAAAFB..........
-.............BAAABBLBBBFAAAADAAAAAAAAAAAAAAAFBBLBBBAAAAFB.........
-............BFAAABBLBBFAAAAADAAAAAAAAAAAAAAAFFBBLBBAAAAFB.........
-............BFAABBLBBFFAAAADAAAAAAAAFFAAFFFFFFFBLBBBAAAAFB........
-............BAAABLBBBFFFFFADAAAAAAAAAAAAAAAAAAFBBLBBAAAAFB........
-...........BFAAABLBBFFAAAAADAAAAAAAAAAAAAAAAAAAFBLBBAAAAFB........
-...........BFAAADBBBFAAAAAADAAAAAAAADAAAAAAAAAAABBLDAAAAAFB.......
-...........BFAAADBBFAAAAAAADAAAAAAAADAAAAAAAAAAAABBDAAAAAFB.......
-..........BFAAADDDBFAAAAAAADAAAAAAAADDAAAAAAAAAAABBDAAAAAFB.......
-..........BFAAADDDBFAAAAAADJAAAAAAAAJDDAAAAAAAAAABBDDAAAAAB.......
-..........BFAAADDBBAAAAAAADJAAAAAAAAJJJDAAAAAAAAAABDDAAAAAFB......
-.........BFAAAADDBBAAAAAADJEJAAAAAAAEEJJDAAAAAAAAABDDAAAAAFB......
-.........BFAAAADDBAAAAAADJEEEAAAAAAAEEEEJDAAAAAAAABDDAAAAAFB......
-.........BFAAAADDBAAAAADBBBBEEAAAAAAEEBBBBBDAAAAAAABDAAAAAFB......
-........BFAAAAADBBAAAADBBBDDBEEAAAAAEBBDDBBBDAAAAAABDAAAAAAB......
-........BFAAAAADBBAAADDBBDHHHBEEAAAABDHHHHBBDDAAAAABDAAAAAAAB.....
-........BFAAAAADBBAADDDBCHHCHEEEEEEEEHHCHHCBDDDAAAABDAAAAAAAB.....
-........BAAAAAADBBABDADBWHHWHEEEEEEEEHHWHHWBDADDDAABDAAAAAAAB.....
-.......BAAAAAAAHDBBBAADMWAAAAEEEEEEEEAAAAAWMDAAABBBBAAAAAAAAB.....
-.......BAAAAAAAHDBBBAADMJJAAEEEEEEEEEEAAAJJMDAAABDDHAAAAAAAAB.....
-.......BAAAAAAAHDDBBAADMJJJJEEEEEEEEEEEJJJJDAAABBDDHAAAAAAAAB.....
-......BAAAAAAAAHDDBBAAADJJJEEEEEEEEEEEEEJJJDAAABBDDHAAAAAAAAAB....
-......BAAAAAAAAHDDB.BAADMEEEEEEMEEMEEEEEEEMDAAB.BDDHAAAAAAAAAB....
-......BAAAAAAAAHDDB.BAADBMEEEEEEMMEEEEEEEBBAAAB.BDDHAAAAAAAAAB....
-......BAAAAAAAAHDDB..BAABBBMEEEEEEEEEEEBB.BAAB..BDDHAAAAAAAAAB....
-.....BAAAAAAAAHDDB....BBB..BBBEEEEEEMBB...BBB...BDDHAAAAAAAAAB....
-.....BAAAAAAAAHDDB............BJJJJJB...........BDDHAAAAAAAAAB....
-.....BAAAAAAAAHDDB..........BWWWAAAWWWB.........BDDHAAAAAAAAAB....
-....BFAAAAAAAAHDDB.........BEBWWWADWWWBEB.......BDDHAAAAAAAAAFB...
-....BFAAAAAAAAHDDB.........BEBWWWADWWKBEB........BDHAAAAAAAAAFB...
-....BFAAAAAAAAHDB.........BEEBWWWADWWKBEEB.......BDHAAAAAAAAAFB...
-...BFAAAAAAAAAHDB.........BEEBWWWADWWKBEEB.......BDHAAAAAAAAAFB...
-...BFAAAAAAAAAHDB.........BEEBWWWADWWKBEEB.......BDHAAAAAAAAAFB...
-...BFAAAAAAAAAHDB........BBEEBWWWADWKKBEEB.......BDHAAAAAAAAAFB...
-..BFFAAAAAAAAAHB.........BBEEBKWWAWWKKBEEB.......BDHAAAAAAAAAFFB..
-..BFFAAAAAAAAAHB.........BEBBGGGGGGGGGGGB.........BHAAAAAAAAFFFB..
-..BFFFAAAAAAAAHB.........BEBBGGKGGKGGKGBBBB.......BHAAAAAAAFFFFB..
-..BFAFFAAAAAAAB..........BJBGGKGGGKGGGBBEJB.......BHAAAAAAFFAAFB..
-.BFAAAAFFAAAAAB..........BBBGGKGGGKGBBWBEJB........BAAAAFFAAAAFB..
-.BFAAAAAAAAAAAB............BGGKGGGBBWWCBBBB........BAAAAAAAAAAAFB.
-.BFADAAAAAAAAAB...........BGGGKGBBWWCCBBGGB........BAAAAAAAAAAAFB.
-.BFADAAAAAAAAAAB..........BGGKBBWWCCBBGKGGB........BAAAAAAAAAAAFB.
-.BAADAAAAAAAAAAB..........BGBBWWCCBBGGGKGGB........BAAAAAAAAAAAAB.
-.BAADAAAAAAAAAAB.........BBBWWCCBBKGGGGKGGGB......BAAAAAAAAADAAAB.
-.BAADAAAAAAAAAAB........BBWWCCBBGGKGGGGKGGGB......BAAAAAAAAADAAAB.
-.BAADAAAAAAAAAAB...BB.BBWWCCBBGGGGKGGGGGKGGB......BAAAAAAAAADAAAB.
-.BAABAAAAAAAAAABBBBI.BWWCCBBKGGGGGKGGGGGKGGGB.....BAAAAAAAAADAAB..
-.BAABDAAAAAAABBBIIIIAWCCBBGGKGGGGGKGGGGGKGGGB.....BAAAAAAAADBAAB..
-..BAABDAAABBBIIIIIIIDCBBBAAAAAAAAAAAAAAAAAAAB....BAAAAAAAAADBAAB..
-..BAABBDBBIIIIIIDIIBBB.BAAAAAAAAAAAAAAAAAAAAAB...BAAAAAAAADBBAB...
-...BAB.BBIIIIIIBBIIB...BBBBBBBBBBBBBBBBBBBBBBB...BAAAAAAADB.BAB...
-...BAB..BIIIIIBABIDB....BEJB......BEJB..........BAAAAAAABB.BAB....
-....BAB..BIIDBBBBIB.....BEJB......BEJB..........BBBBBBBB..BAB.....
-.....BBB..BDB...BDB.....BEEEB....BEEEB...................BBB......
-...........BB...BBB.....BBBB.....BBBBB............................
-........................BBBB......BBBB............................
-.....CCCCCCCCCCC....CCCCBBBBCCCCCCBBBBCCCCC.....CCCCCCCCCCCC......
-..CCCCCCCCCCCCCCCCCCCCCCBBBBCCCCCCBBBBCCCCCCCCCCCCCCCCCCCCCCCCC...
-.CCCCCCCCCCCCCCCCCCCCCCCBBBBCCCCCCBBBBCCCCCCCCCCCCCCCCCCCCCCCCCC..
-..CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC...
-.....CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC......
-....................CCCCCCCCCCCCCCCCCCCCCCC.......................
-..................................................................
-```
+These are warnings for the critic, not failures:
+- **Torso mirror similarity:** 0.40–0.55 for every pose, well under the 0.85 threshold.
+- **Straight outline runs longer than 5 pixels on limbs or clothing:**
+  - P1: one vertical run (6 pixels at the skirt's right edge)
+  - P5: one horizontal run (8 pixels along the pointing arm)
+  - P6: two vertical runs (her straight standing leg and the dropped arm, which suit a sleepy pose)
+  - P2, P3 and P4: none.
