@@ -48,7 +48,6 @@ def test_draw_requires_target():
 @pytest.mark.parametrize(
     "argv, func",
     [
-        (["demo"], "demo.diamond"),
         (["time"], "measure.time_sweep"),
         (["vs-ncu"], "profile.ncu_sweep"),
     ],
@@ -61,12 +60,33 @@ def test_stub_reports_not_implemented(argv, func, capsys, tmp_path):
     assert "Traceback" not in err
 
 
-def test_draw_target_reaches_capture(tmp_path, capsys):
+def test_draw_target_fails_cleanly(tmp_path, capsys):
+    """A workload that does not return a CUDA tensor fails with a message, not a traceback."""
     mod = tmp_path / "wl.py"
     mod.write_text("def make():\n    return (lambda x: x), [1]\n")
-    rc = cli.main(["draw", f"{mod}:make", "--out", str(tmp_path)])
+    rc = cli.main(["draw", f"{mod}:make", "--out", str(tmp_path), "--no-miku"])
+    err = capsys.readouterr().err
     assert rc != 0
-    assert capsys.readouterr().err.strip() == "not implemented yet: capture.capture"
+    assert err.startswith("cgviz:") and "Traceback" not in err
+
+
+def test_preset_subcommands_parse():
+    p = cli.build_parser()
+    for name in ("diamond", "decode", "prefill"):
+        a = p.parse_args([name, "--speed", "2", "--no-panel", "--no-miku"])
+        assert (a.command, a.speed, a.no_panel, a.no_miku) == (name, 2.0, True, True)
+
+
+def test_show_graph_static_without_terminal(capsys):
+    """Not a terminal: static graph and node list only, no escape codes."""
+    import json
+    from pathlib import Path
+
+    data = json.loads((Path(__file__).parent / "fixtures/graphs/decode.json").read_text())
+    a = cli.build_parser().parse_args(["decode", "--cols", "120"])
+    cli.show_graph(a, data, ["Q", "K", "V", "QK", "PV", "out", "gate", "up", "down"], "decode")
+    out = capsys.readouterr().out
+    assert "\x1b" not in out and "norm x8" in out and "┏" in out
 
 
 def test_bad_target(tmp_path):

@@ -12,3 +12,6 @@ out/
 *.png
 *.ans
 *.ncu-rep
+!assets/sprites/*.png
+!findings/graph_before_after/*.png
+.wsl/

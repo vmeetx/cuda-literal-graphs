@@ -1,0 +1,107 @@
+{
+ "exec_graph_id": 2,
+ "nodes": [
+  {
+   "index": 0,
+   "node_type": "memset",
+   "tools_id": 8589934592,
+   "graph_id": 2,
+   "node_id": 0,
+   "kernel_name": null,
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [],
+   "dependents": [
+    1
+   ]
+  },
+  {
+   "index": 1,
+   "node_type": "kernel",
+   "tools_id": 8589934593,
+   "graph_id": 2,
+   "node_id": 1,
+   "kernel_name": "ampere_sgemm_128x64_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    0
+   ],
+   "dependents": [
+    2,
+    3,
+    5
+   ]
+  },
+  {
+   "index": 2,
+   "node_type": "kernel",
+   "tools_id": 8589934594,
+   "graph_id": 2,
+   "node_id": 2,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZZZNS0_49_GLOBAL__N__037c6ad9_16_TensorCompare_cu_71e06f4e19launch_clamp_scalarERNS_18TensorIteratorBaseEN3c106ScalarES6_NS0_6detail11ClampLimitsEENKUlvE_clEvENKUlvE5_clEvEUlfE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    1
+   ],
+   "dependents": [
+    5
+   ]
+  },
+  {
+   "index": 3,
+   "node_type": "memset",
+   "tools_id": 8589934595,
+   "graph_id": 2,
+   "node_id": 3,
+   "kernel_name": null,
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    1
+   ],
+   "dependents": [
+    4
+   ]
+  },
+  {
+   "index": 4,
+   "node_type": "kernel",
+   "tools_id": 8589934596,
+   "graph_id": 2,
+   "node_id": 4,
+   "kernel_name": "ampere_sgemm_128x64_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    3
+   ],
+   "dependents": [
+    5
+   ]
+  },
+  {
+   "index": 5,
+   "node_type": "kernel",
+   "tools_id": 8589934597,
+   "graph_id": 2,
+   "node_id": 5,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4ENS0_15CUDAFunctor_addIfEESt5arrayIPcLm3EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    1,
+    2,
+    4
+   ],
+   "dependents": []
+  }
+ ]
+}

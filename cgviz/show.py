@@ -1,13 +1,25 @@
-"""Render a Figure to Unicode in the terminal."""
+"""Show things in the terminal: the static graph, and the animated walk.
+
+The animation composes each frame as a grid of cells (graph tiles, highlighted boxes,
+half-block sprites, caption) and redraws only the cells that changed since the previous
+frame. Standard library only.
+"""
 
 from __future__ import annotations
 
 import importlib.util
+import os
+import shutil
+import signal
+import sys
+import time
 
-import numpy as np
-from matplotlib.figure import Figure
+from cgviz import halfblock
+from cgviz.sprites import FRAMES, PALETTE
 
 RENDERERS = ("braille", "block", "gamma")
+
+# ---------------------------------------------------------------- scaffold renderer API
 
 
 def available_renderers() -> list[str]:
@@ -32,17 +44,325 @@ def best_renderer() -> str:
     return "block"
 
 
-def render(fig: Figure, cols: int, rows: int, renderer: str) -> tuple[np.ndarray, np.ndarray]:
-    """Takes: a Figure, a size in character cells and a renderer name.
+def render(fig, cols: int, rows: int, renderer: str):
+    """Takes: a matplotlib Figure, a size in character cells and a renderer name.
     Gives: (char grid of shape (rows, cols), colours array).
-    Raises: ValueError for an unknown or unavailable renderer.
-    """
+    Raises: ValueError for an unknown or unavailable renderer."""
     raise NotImplementedError("TODO(veer)")
 
 
-def print_grid(chars: np.ndarray, colours: np.ndarray) -> None:
-    """Takes: a char grid and its colours.
-    Gives: nothing; prints the grid to stdout with ANSI colour.
-    Raises: ValueError if shapes do not match.
-    """
+def print_grid(chars, colours) -> None:
+    """Takes: a char grid and its colours. Gives: nothing; prints it with ANSI colour."""
     raise NotImplementedError("TODO(veer)")
+
+
+# ---------------------------------------------------------------- animation constants
+
+MIN_COLS, MIN_ROWS = 40, 16
+SPRITE_W, SPRITE_H = 12, 9          # cells (12x16 px padded to 18 px for the bob)
+PORTRAIT_W, PORTRAIT_H = 32, 24     # cells (32x48 px)
+PANEL_GAP = 2
+HL = (255, 214, 92)                 # highlighted box border
+CAPTION = (235, 238, 242)
+DIM = (130, 134, 142)
+BLANK = (" ", None, None, False)
+NODE_GAP = {"TB": 15, "LR": 10}     # sibling gap in the animated layout: room for a sprite
+
+
+def _pad(frame):
+    w = len(frame[0])
+    return ["." * w] + list(frame) + ["." * w]
+
+
+_SPRITE_CACHE: dict = {}
+
+
+def sprite_cells(name, facing=1, dy=0):
+    """Cell grid for a sprite frame: mirrored when facing left, bobbed by dy pixels."""
+    key = (name, facing, dy)
+    if key not in _SPRITE_CACHE:
+        rows = _pad(FRAMES[name]) if not name.startswith("portrait") else list(FRAMES[name])
+        if dy < 0:
+            rows = rows[-dy:] + ["." * len(rows[0])] * -dy
+        elif dy > 0:
+            rows = ["." * len(rows[0])] * dy + rows[:-dy]
+        if facing < 0:
+            rows = [r[::-1] for r in rows]
+        _SPRITE_CACHE[key] = halfblock.cells(rows, PALETTE)
+    return _SPRITE_CACHE[key]
+
+
+def sprite_rect(pos, orient):
+    """Top-left cell of the walker sprite for a walker standing at `pos`.
+    TB: beside the path, to its right, feet on the walker's row. LR: just above the path."""
+    x, y = pos
+    if orient == "TB":
+        return x + 2, y - (SPRITE_H - 1)
+    return x - SPRITE_W // 2 + 1, y - SPRITE_H
+
+
+# ---------------------------------------------------------------- scene
+
+
+class Scene:
+    """Everything needed to compose frames for one terminal size."""
+
+    def __init__(self, lay, nodes, frames, cols, rows, panel=True, title=""):
+        self.lay, self.nodes, self.frames, self.title = lay, nodes, frames, title
+        self.cols, self.rows = cols, rows
+        # canvas = graph plus room for sprites wherever they go
+        xs, ys = [0, lay.width - 1], [0, lay.height - 1]
+        for f in frames:
+            for _, pos, *_r in f.walkers:
+                sx, sy = sprite_rect(pos, lay.orient)
+                xs += [sx, sx + SPRITE_W - 1]
+                ys += [sy, sy + SPRITE_H - 1]
+        self.ox, self.oy = -min(xs), -min(ys)
+        self.cw, self.ch = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+        self.vh = rows - 2                       # caption + status lines
+        self.panel = (panel and rows - 2 >= PORTRAIT_H
+                      and cols - PORTRAIT_W - PANEL_GAP >= min(self.cw, MIN_COLS))
+        self.vw = cols - PORTRAIT_W - PANEL_GAP if self.panel else cols
+        self.border = {}
+        for n, (x0, y0, x1, y1) in lay.boxes.items():
+            cells = {(x, y0) for x in range(x0, x1 + 1)} | {(x, y1) for x in range(x0, x1 + 1)}
+            cells |= {(x0, y) for y in range(y0, y1 + 1)} | {(x1, y) for y in range(y0, y1 + 1)}
+            self.border[n] = cells
+        self.cams = self._track()
+
+    # canvas coordinates of each walker's sprite
+    def rects(self, f):
+        out = []
+        for _, pos, *_r in f.walkers:
+            sx, sy = sprite_rect(pos, self.lay.orient)
+            out.append((sx + self.ox, sy + self.oy, sx + self.ox + SPRITE_W - 1,
+                        sy + self.oy + SPRITE_H - 1))
+        return out
+
+    def _axis(self, cam, lo, hi, view, total, first):
+        if total <= view:
+            return -((view - total) // 2)
+        if hi - lo + 1 > view:
+            hi = lo + view - 1
+        c = (lo + hi) / 2
+        want = cam
+        if first or c < cam + view / 3:
+            want = c - view / 2 if first else c - view / 3
+        elif c > cam + 2 * view / 3:
+            want = c - 2 * view / 3
+        want = max(0, min(int(round(want)), total - view))
+        step = max(-3, min(3, want - cam)) if not first else want - cam
+        cam += step
+        cam = min(cam, lo)                 # never lose her
+        cam = max(cam, hi - view + 1)
+        return max(0, min(cam, total - view))
+
+    def _track(self):
+        cams, cx, cy = [], 0, 0
+        for i, f in enumerate(self.frames):
+            rs = self.rects(f)
+            if not rs:
+                cams.append((cx, cy))
+                continue
+            x0, y0 = min(r[0] for r in rs), min(r[1] for r in rs)
+            x1, y1 = max(r[2] for r in rs), max(r[3] for r in rs)
+            if x1 - x0 + 1 > self.vw:       # walkers don't fit side by side: follow the leftmost
+                left = min(rs, key=lambda r: r[0])
+                x0, x1 = left[0], left[2]
+            if y1 - y0 + 1 > self.vh:
+                top = min(rs, key=lambda r: r[1])
+                y0, y1 = top[1], top[3]
+            cx = self._axis(cx, x0, x1, self.vw, self.cw, i == 0)
+            cy = self._axis(cy, y0, y1, self.vh, self.ch, i == 0)
+            cams.append((cx, cy))
+        return cams
+
+    def compose(self, i):
+        """The full terminal grid for frame i: rows x cols of (char, fg, bg, bold)."""
+        f, (cx, cy) = self.frames[i], self.cams[i]
+        grid = [[BLANK] * self.cols for _ in range(self.rows)]
+        hl = set()
+        for n in f.highlight:
+            hl |= self.border[n]
+        cells = self.lay.cells
+        for r in range(self.vh):
+            gy = r + cy - self.oy
+            for c in range(self.vw):
+                gx = c + cx - self.ox
+                cell = cells.get((gx, gy))
+                if cell and cell[0] != " ":
+                    ch, fg, bold = cell
+                    if (gx, gy) in hl:
+                        fg, bold = HL, True
+                    grid[r][c] = (ch, fg, None, bold)
+        for (wid, pos, sprite, facing, dy), (sx, sy, _, _) in sorted(
+                zip(f.walkers, self.rects(f)), key=lambda t: t[0][0]):
+            for j, row in enumerate(sprite_cells(sprite, facing, dy)):
+                for k, sc in enumerate(row):
+                    if sc is None:
+                        continue                       # transparent: keep the graph cell
+                    r, c = sy + j - cy, sx + k - cx
+                    if 0 <= r < self.vh and 0 <= c < self.vw:
+                        ch, fg, bg = sc
+                        grid[r][c] = (ch, fg, bg, False)
+        if self.panel:
+            name = "portrait_victory" if f.event == "victory" else "portrait_idle"
+            px, py = self.vw + PANEL_GAP, max(0, (self.vh - PORTRAIT_H) // 2)
+            for j, row in enumerate(sprite_cells(name)):
+                for k, sc in enumerate(row):
+                    if sc is not None and py + j < self.vh:
+                        grid[py + j][px + k] = (sc[0], sc[1], sc[2], False)
+        _put(grid, self.vh, f.caption, CAPTION, True)
+        status = (f"{self.title}   walkers: {len(f.walkers)}   "
+                  f"{'victory!' if f.event == 'victory' else ''}")
+        _put(grid, self.vh + 1, status.rstrip(), DIM, False)
+        return grid
+
+
+def _put(grid, r, text, fg, bold):
+    from cgviz.layout import cut
+
+    text = cut(text, len(grid[r]))
+    c = 0
+    for ch in text:
+        if c >= len(grid[r]):
+            break
+        grid[r][c] = (ch, fg, None, bold)
+        c += 1
+
+
+def grid_text(grid):
+    return "\n".join("".join(c[0] for c in row).rstrip() for row in grid)
+
+
+# ---------------------------------------------------------------- diff renderer
+
+
+def _sgr(fg, bg, bold):
+    s = "\x1b[0m"
+    if bold:
+        s += "\x1b[1m"
+    if fg:
+        s += "\x1b[38;2;%d;%d;%dm" % fg
+    if bg:
+        s += "\x1b[48;2;%d;%d;%dm" % bg
+    return s
+
+
+def diff(prev, grid):
+    """Escape sequence that turns `prev` into `grid`, touching only changed cells."""
+    out, cur = [], None
+    for r, row in enumerate(grid):
+        old = prev[r] if prev is not None and r < len(prev) else None
+        c = 0
+        while c < len(row):
+            if old is not None and c < len(old) and old[c] == row[c]:
+                c += 1
+                continue
+            out.append(f"\x1b[{r + 1};{c + 1}H")
+            while c < len(row) and (old is None or c >= len(old) or old[c] != row[c]):
+                ch, fg, bg, bold = row[c]
+                st = (fg, bg, bold)
+                if st != cur:
+                    out.append(_sgr(fg, bg, bold))
+                    cur = st
+                out.append(ch)
+                c += 1
+    return "".join(out)
+
+
+# ---------------------------------------------------------------- player
+
+
+class _Terminal:
+    """Alternate screen, hidden cursor, no echo; restored on exit, Ctrl-C and SIGTERM."""
+
+    def __init__(self, out):
+        self.out, self.saved, self.old_term = out, None, None
+
+    def __enter__(self):
+        try:
+            import termios
+
+            fd = sys.stdin.fileno()
+            self.saved = termios.tcgetattr(fd)
+            new = termios.tcgetattr(fd)
+            new[3] &= ~(termios.ECHO | termios.ICANON)
+            termios.tcsetattr(fd, termios.TCSANOW, new)
+        except Exception:
+            self.saved = None
+        self.old_term = signal.getsignal(signal.SIGTERM)
+        signal.signal(signal.SIGTERM, _raise_interrupt)
+        self.out.write("\x1b[?1049h\x1b[?25l\x1b[?7l\x1b[2J")
+        self.out.flush()
+        return self
+
+    def __exit__(self, *exc):
+        try:
+            self.out.write("\x1b[0m\x1b[?7h\x1b[?25h\x1b[?1049l")
+            self.out.flush()
+        finally:
+            if self.saved is not None:
+                import termios
+
+                termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self.saved)
+            signal.signal(signal.SIGTERM, self.old_term or signal.SIG_DFL)
+        return False
+
+
+def _raise_interrupt(*_):
+    raise KeyboardInterrupt
+
+
+def can_animate(out=None) -> bool:
+    out = out or sys.stdout
+    if not out.isatty():
+        return False
+    size = shutil.get_terminal_size((0, 0))
+    return size.columns >= MIN_COLS and size.lines >= MIN_ROWS
+
+
+def play(lay, nodes, frames, title="", panel=True, out=None, fps=12, hold=1.5):
+    """Run the animation in the alternate screen. Returns True if it ran to the end."""
+    out = out or sys.stdout
+    finished = False
+    with _Terminal(out):
+        size, scene, prev = None, None, None
+        t0 = time.monotonic()
+        i = 0
+        try:
+            while i < len(frames):
+                now = shutil.get_terminal_size((80, 24))
+                if now != size:
+                    size = now
+                    scene = Scene(lay, nodes, frames, size.columns, size.lines, panel, title)
+                    prev = None
+                    out.write("\x1b[0m\x1b[2J")
+                grid = scene.compose(i)
+                out.write(diff(prev, grid))
+                out.flush()
+                prev = grid
+                i += 1
+                delay = t0 + i / fps - time.monotonic()
+                if delay > 0:
+                    time.sleep(delay)
+            time.sleep(hold)
+            finished = True
+        except KeyboardInterrupt:
+            finished = False
+    return finished
+
+
+def print_static(text: str, out=None) -> None:
+    out = out or sys.stdout
+    out.write(text.rstrip("\n") + "\n")
+    out.flush()
+
+
+def environ_size():
+    """Terminal size honouring COLUMNS/LINES (for pty-driven screenshots)."""
+    try:
+        return int(os.environ["COLUMNS"]), int(os.environ["LINES"])
+    except (KeyError, ValueError):
+        s = shutil.get_terminal_size((100, 30))
+        return s.columns, s.lines

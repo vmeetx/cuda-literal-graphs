@@ -11,4 +11,6 @@ def diamond() -> tuple[Callable[..., Any], Sequence[Any]]:
     Gives: (workload, static_inputs) for the diamond: two branches on two streams, joined.
     Raises: RuntimeError if CUDA is unavailable.
     """
-    raise NotImplementedError("TODO(veer)")
+    from cgviz import presets
+
+    return presets.diamond()

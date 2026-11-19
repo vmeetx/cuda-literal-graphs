@@ -1,0 +1,623 @@
+{
+ "exec_graph_id": 2,
+ "nodes": [
+  {
+   "index": 0,
+   "node_type": "kernel",
+   "tools_id": 8589934592,
+   "graph_id": 2,
+   "node_id": 0,
+   "kernel_name": "_ZN2at6native27unrolled_elementwise_kernelIZZZNS0_23direct_copy_kernel_cudaERNS_18TensorIteratorBaseEENKUlvE1_clEvENKUlvE5_clEvEUlfE_St5arrayIPcLm2EELi4E23TrivialOffsetCalculatorILi1EjESB_NS0_6memory12LoadWithCastILi1EEENSC_13StoreWithCastILi1EEEEEviT_T0_T2_T3_T4_T5_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [],
+   "dependents": [
+    1
+   ]
+  },
+  {
+   "index": 1,
+   "node_type": "kernel",
+   "tools_id": 8589934593,
+   "graph_id": 2,
+   "node_id": 1,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZNS0_51_GLOBAL__N__7b48bba2_12_PowKernel_cu_977e8e6d_5569629pow_tensor_scalar_kernel_implIffEEvRNS_18TensorIteratorBaseET0_EUlfE_St5arrayIPcLm2EELb0EEEviS6_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    0
+   ],
+   "dependents": [
+    2
+   ]
+  },
+  {
+   "index": 2,
+   "node_type": "kernel",
+   "tools_id": 8589934594,
+   "graph_id": 2,
+   "node_id": 2,
+   "kernel_name": "_ZN2at6native13reduce_kernelILi512ELi1ENS0_8ReduceOpIfNS0_7MeanOpsIffffEEjfLi4ELi4EEEEEvT1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    1
+   ],
+   "dependents": [
+    3
+   ]
+  },
+  {
+   "index": 3,
+   "node_type": "kernel",
+   "tools_id": 8589934595,
+   "graph_id": 2,
+   "node_id": 3,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4ENS0_21CUDAFunctorOnSelf_addIfEESt5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    2
+   ],
+   "dependents": [
+    4
+   ]
+  },
+  {
+   "index": 4,
+   "node_type": "kernel",
+   "tools_id": 8589934596,
+   "graph_id": 2,
+   "node_id": 4,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZZZNS0_17rsqrt_kernel_cudaERNS_18TensorIteratorBaseEENKUlvE0_clEvENKUlvE0_clEvEUlfE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    3
+   ],
+   "dependents": [
+    5
+   ]
+  },
+  {
+   "index": 5,
+   "node_type": "kernel",
+   "tools_id": 8589934597,
+   "graph_id": 2,
+   "node_id": 5,
+   "kernel_name": "_ZN2at6native18elementwise_kernelILi128ELi2EZNS0_22gpu_kernel_impl_nocastINS0_13BinaryFunctorIfffNS0_15binary_internal10MulFunctorIfEEEEEEvRNS_18TensorIteratorBaseERKT_EUliE_EEviT1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    4
+   ],
+   "dependents": [
+    6
+   ]
+  },
+  {
+   "index": 6,
+   "node_type": "kernel",
+   "tools_id": 8589934598,
+   "graph_id": 2,
+   "node_id": 6,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZNS0_25bfloat16_copy_kernel_cudaERNS_18TensorIteratorBaseEEUlfE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    5
+   ],
+   "dependents": [
+    7
+   ]
+  },
+  {
+   "index": 7,
+   "node_type": "kernel",
+   "tools_id": 8589934599,
+   "graph_id": 2,
+   "node_id": 7,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4ENS0_13BinaryFunctorIN3c108BFloat16ES4_S4_NS0_15binary_internal10MulFunctorIfEEEESt5arrayIPcLm3EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    6
+   ],
+   "dependents": [
+    8,
+    9,
+    10,
+    11
+   ]
+  },
+  {
+   "index": 8,
+   "node_type": "kernel",
+   "tools_id": 8589934600,
+   "graph_id": 2,
+   "node_id": 8,
+   "kernel_name": "_ZN7cutlass7Kernel2I66cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x64_32x6_tn_align8EEvNT_6ParamsE",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    7
+   ],
+   "dependents": [
+    11
+   ]
+  },
+  {
+   "index": 9,
+   "node_type": "kernel",
+   "tools_id": 8589934601,
+   "graph_id": 2,
+   "node_id": 9,
+   "kernel_name": "_ZN7cutlass7Kernel2I66cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x64_32x6_tn_align8EEvNT_6ParamsE",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    7
+   ],
+   "dependents": [
+    11
+   ]
+  },
+  {
+   "index": 10,
+   "node_type": "kernel",
+   "tools_id": 8589934602,
+   "graph_id": 2,
+   "node_id": 10,
+   "kernel_name": "_ZN7cutlass7Kernel2I66cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x64_32x6_tn_align8EEvNT_6ParamsE",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    7
+   ],
+   "dependents": [
+    11
+   ]
+  },
+  {
+   "index": 11,
+   "node_type": "kernel",
+   "tools_id": 8589934603,
+   "graph_id": 2,
+   "node_id": 11,
+   "kernel_name": "_ZN2at6native40_GLOBAL__N__f1f992fe_8_Shape_cu_49f7391c30CatArrayBatchedCopy_vectorizedINS1_10OpaqueTypeILj2EEEjLi2ELi128ELi1ELi16ELi8EEEvPcNS1_25CatArrInputTensorMetadataIT_T0_XT2_EXT3_EEENS1_16TensorSizeStrideIS8_Lj4EEEiS8_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    7,
+    8,
+    9,
+    10
+   ],
+   "dependents": [
+    12
+   ]
+  },
+  {
+   "index": 12,
+   "node_type": "kernel",
+   "tools_id": 8589934604,
+   "graph_id": 2,
+   "node_id": 12,
+   "kernel_name": "_ZN2at6native40_GLOBAL__N__f1f992fe_8_Shape_cu_49f7391c30CatArrayBatchedCopy_vectorizedINS1_10OpaqueTypeILj2EEEjLi2ELi128ELi1ELi16ELi8EEEvPcNS1_25CatArrInputTensorMetadataIT_T0_XT2_EXT3_EEENS1_16TensorSizeStrideIS8_Lj4EEEiS8_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    11
+   ],
+   "dependents": [
+    13
+   ]
+  },
+  {
+   "index": 13,
+   "node_type": "kernel",
+   "tools_id": 8589934605,
+   "graph_id": 2,
+   "node_id": 13,
+   "kernel_name": "_Z17gemv2T_kernel_valIii13__nv_bfloat16S0_S0_fLi128ELi16ELi2ELi2ELb0ELb0E18cublasGemvParamsExIi30cublasGemvTensorStridedBatchedIKS0_ES4_S2_IS0_EfEEvT11_T4_S8_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    12
+   ],
+   "dependents": [
+    14
+   ]
+  },
+  {
+   "index": 14,
+   "node_type": "kernel",
+   "tools_id": 8589934606,
+   "graph_id": 2,
+   "node_id": 14,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4ENS0_13AUnaryFunctorIN3c108BFloat16ES4_S4_NS0_15binary_internal10MulFunctorIfEEEESt5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    13
+   ],
+   "dependents": [
+    15
+   ]
+  },
+  {
+   "index": 15,
+   "node_type": "kernel",
+   "tools_id": 8589934607,
+   "graph_id": 2,
+   "node_id": 15,
+   "kernel_name": "_ZN2at6native27unrolled_elementwise_kernelIZZZNS0_23direct_copy_kernel_cudaERNS_18TensorIteratorBaseEENKUlvE1_clEvENKUlvE5_clEvEUlfE_St5arrayIPcLm2EELi4E23TrivialOffsetCalculatorILi1EjESB_NS0_6memory12LoadWithCastILi1EEENSC_13StoreWithCastILi1EEEEEviT_T0_T2_T3_T4_T5_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    14
+   ],
+   "dependents": [
+    16
+   ]
+  },
+  {
+   "index": 16,
+   "node_type": "kernel",
+   "tools_id": 8589934608,
+   "graph_id": 2,
+   "node_id": 16,
+   "kernel_name": "_ZN43_GLOBAL__N__f71e7945_10_SoftMax_cu_9f978f6320softmax_warp_forwardIfffLi8ELb0ELb0ELi32EEEvPT0_PKT_iiiPKbib",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    15
+   ],
+   "dependents": [
+    17
+   ]
+  },
+  {
+   "index": 17,
+   "node_type": "kernel",
+   "tools_id": 8589934609,
+   "graph_id": 2,
+   "node_id": 17,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZNS0_25bfloat16_copy_kernel_cudaERNS_18TensorIteratorBaseEEUlfE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    16
+   ],
+   "dependents": [
+    18
+   ]
+  },
+  {
+   "index": 18,
+   "node_type": "kernel",
+   "tools_id": 8589934610,
+   "graph_id": 2,
+   "node_id": 18,
+   "kernel_name": "_ZN8internal5gemvx6kernelIii13__nv_bfloat16S2_S2_fLb0ELb1ELb0ELb0ELi9ELb0E18cublasGemvParamsExIi30cublasGemvTensorStridedBatchedIKS2_ES6_S4_IS2_EfEEENSt9enable_ifIXntT5_EvE4typeET11_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    17
+   ],
+   "dependents": [
+    19
+   ]
+  },
+  {
+   "index": 19,
+   "node_type": "kernel",
+   "tools_id": 8589934611,
+   "graph_id": 2,
+   "node_id": 19,
+   "kernel_name": "_ZN7cutlass7Kernel2I66cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x64_32x6_tn_align8EEvNT_6ParamsE",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    18
+   ],
+   "dependents": [
+    20
+   ]
+  },
+  {
+   "index": 20,
+   "node_type": "kernel",
+   "tools_id": 8589934612,
+   "graph_id": 2,
+   "node_id": 20,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4ENS0_15CUDAFunctor_addIN3c108BFloat16EEESt5arrayIPcLm3EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    19
+   ],
+   "dependents": [
+    21
+   ]
+  },
+  {
+   "index": 21,
+   "node_type": "kernel",
+   "tools_id": 8589934613,
+   "graph_id": 2,
+   "node_id": 21,
+   "kernel_name": "_ZN2at6native27unrolled_elementwise_kernelIZZZNS0_23direct_copy_kernel_cudaERNS_18TensorIteratorBaseEENKUlvE1_clEvENKUlvE5_clEvEUlfE_St5arrayIPcLm2EELi4E23TrivialOffsetCalculatorILi1EjESB_NS0_6memory12LoadWithCastILi1EEENSC_13StoreWithCastILi1EEEEEviT_T0_T2_T3_T4_T5_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    20
+   ],
+   "dependents": [
+    22
+   ]
+  },
+  {
+   "index": 22,
+   "node_type": "kernel",
+   "tools_id": 8589934614,
+   "graph_id": 2,
+   "node_id": 22,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZNS0_51_GLOBAL__N__7b48bba2_12_PowKernel_cu_977e8e6d_5569629pow_tensor_scalar_kernel_implIffEEvRNS_18TensorIteratorBaseET0_EUlfE_St5arrayIPcLm2EELb0EEEviS6_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    21
+   ],
+   "dependents": [
+    23
+   ]
+  },
+  {
+   "index": 23,
+   "node_type": "kernel",
+   "tools_id": 8589934615,
+   "graph_id": 2,
+   "node_id": 23,
+   "kernel_name": "_ZN2at6native13reduce_kernelILi512ELi1ENS0_8ReduceOpIfNS0_7MeanOpsIffffEEjfLi4ELi4EEEEEvT1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    22
+   ],
+   "dependents": [
+    24
+   ]
+  },
+  {
+   "index": 24,
+   "node_type": "kernel",
+   "tools_id": 8589934616,
+   "graph_id": 2,
+   "node_id": 24,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4ENS0_21CUDAFunctorOnSelf_addIfEESt5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    23
+   ],
+   "dependents": [
+    25
+   ]
+  },
+  {
+   "index": 25,
+   "node_type": "kernel",
+   "tools_id": 8589934617,
+   "graph_id": 2,
+   "node_id": 25,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZZZNS0_17rsqrt_kernel_cudaERNS_18TensorIteratorBaseEENKUlvE0_clEvENKUlvE0_clEvEUlfE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    24
+   ],
+   "dependents": [
+    26
+   ]
+  },
+  {
+   "index": 26,
+   "node_type": "kernel",
+   "tools_id": 8589934618,
+   "graph_id": 2,
+   "node_id": 26,
+   "kernel_name": "_ZN2at6native18elementwise_kernelILi128ELi2EZNS0_22gpu_kernel_impl_nocastINS0_13BinaryFunctorIfffNS0_15binary_internal10MulFunctorIfEEEEEEvRNS_18TensorIteratorBaseERKT_EUliE_EEviT1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    25
+   ],
+   "dependents": [
+    27
+   ]
+  },
+  {
+   "index": 27,
+   "node_type": "kernel",
+   "tools_id": 8589934619,
+   "graph_id": 2,
+   "node_id": 27,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZNS0_25bfloat16_copy_kernel_cudaERNS_18TensorIteratorBaseEEUlfE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    26
+   ],
+   "dependents": [
+    28
+   ]
+  },
+  {
+   "index": 28,
+   "node_type": "kernel",
+   "tools_id": 8589934620,
+   "graph_id": 2,
+   "node_id": 28,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4ENS0_13BinaryFunctorIN3c108BFloat16ES4_S4_NS0_15binary_internal10MulFunctorIfEEEESt5arrayIPcLm3EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    27
+   ],
+   "dependents": [
+    29,
+    30,
+    31
+   ]
+  },
+  {
+   "index": 29,
+   "node_type": "kernel",
+   "tools_id": 8589934621,
+   "graph_id": 2,
+   "node_id": 29,
+   "kernel_name": "_Z17gemv2T_kernel_valIii13__nv_bfloat16S0_S0_fLi128ELi16ELi4ELi4ELb0ELb0E18cublasGemvParamsExIi30cublasGemvTensorStridedBatchedIKS0_ES4_S2_IS0_EfEEvT11_T4_S8_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    28
+   ],
+   "dependents": [
+    31
+   ]
+  },
+  {
+   "index": 30,
+   "node_type": "kernel",
+   "tools_id": 8589934622,
+   "graph_id": 2,
+   "node_id": 30,
+   "kernel_name": "_Z17gemv2T_kernel_valIii13__nv_bfloat16S0_S0_fLi128ELi16ELi4ELi4ELb0ELb0E18cublasGemvParamsExIi30cublasGemvTensorStridedBatchedIKS0_ES4_S2_IS0_EfEEvT11_T4_S8_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    28
+   ],
+   "dependents": [
+    31
+   ]
+  },
+  {
+   "index": 31,
+   "node_type": "kernel",
+   "tools_id": 8589934623,
+   "graph_id": 2,
+   "node_id": 31,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZZZNS0_62_GLOBAL__N__e7db5ad4_23_ActivationSiluKernel_cu_977e8e6d_4156711silu_kernelERNS_18TensorIteratorBaseEENKUlvE_clEvENKUlvE4_clEvEUlN3c108BFloat16EE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    28,
+    29,
+    30
+   ],
+   "dependents": [
+    32
+   ]
+  },
+  {
+   "index": 32,
+   "node_type": "kernel",
+   "tools_id": 8589934624,
+   "graph_id": 2,
+   "node_id": 32,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4ENS0_13BinaryFunctorIN3c108BFloat16ES4_S4_NS0_15binary_internal10MulFunctorIfEEEESt5arrayIPcLm3EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    31
+   ],
+   "dependents": [
+    33
+   ]
+  },
+  {
+   "index": 33,
+   "node_type": "kernel",
+   "tools_id": 8589934625,
+   "graph_id": 2,
+   "node_id": 33,
+   "kernel_name": "_ZN7cutlass7Kernel2I68cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_16x16_128x2_tn_align8EEvNT_6ParamsE",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    32
+   ],
+   "dependents": [
+    34
+   ]
+  },
+  {
+   "index": 34,
+   "node_type": "kernel",
+   "tools_id": 8589934626,
+   "graph_id": 2,
+   "node_id": 34,
+   "kernel_name": "_ZN8cublasLt19splitKreduce_kernelILi32ELi16Ei13__nv_bfloat16S1_fS1_Lb0ES1_S1_S1_Lb1ELb0ELb0ELb0EEEvNS_18cublasSplitKParamsIT4_EEPKT2_PKT8_PT7_PT3_PKS3_SG_PKT9_S7_PSH_PvlPS3_PiSM_SM_SG_SG_SG_SG_SG_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    33
+   ],
+   "dependents": [
+    35
+   ]
+  },
+  {
+   "index": 35,
+   "node_type": "kernel",
+   "tools_id": 8589934627,
+   "graph_id": 2,
+   "node_id": 35,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4ENS0_15CUDAFunctor_addIN3c108BFloat16EEESt5arrayIPcLm3EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    34
+   ],
+   "dependents": []
+  }
+ ]
+}

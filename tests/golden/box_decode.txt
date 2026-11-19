@@ -1,0 +1,121 @@
+       ┌─────────┐
+       │ norm x8 │
+       └────┬────┘
+            │
+   ┌────────┼────────┐
+   ▼        ▼        ▼
+┏━s1━━┓  ┏━s2━━┓  ┏━s3━━┓
+┃  Q  ┃  ┃  K  ┃  ┃  V  ┃
+┗━━┯━━┛  ┗━━┯━━┛  ┗━━┯━━┛
+   │        │        │
+   └────────┼────────┘
+            ▼
+         ┌─────┐
+         │ cat │
+         └──┬──┘
+            │
+            ▼
+         ┌─────┐
+         │ cat │
+         └──┬──┘
+            │
+            ▼
+         ┏━━━━━┓
+         ┃ QK  ┃
+         ┗━━┯━━┛
+            │
+            ▼
+        ┌───────┐
+        │ ew x2 │
+        └───┬───┘
+            │
+            ▼
+       ┌─────────┐
+       │ softmax │
+       └────┬────┘
+            │
+            ▼
+        ┌───────┐
+        │ copy  │
+        └───┬───┘
+            │
+            ▼
+         ┏━━━━━┓
+         ┃ PV  ┃
+         ┗━━┯━━┛
+            │
+            ▼
+         ┏━━━━━┓
+         ┃ out ┃
+         ┗━━┯━━┛
+            │
+            ▼
+       ┌─────────┐
+       │ norm x9 │
+       └────┬────┘
+            │
+        ┌───┴─────┐
+        ▼         ▼
+    ┏━s1━━━━┓  ┏━s2━━┓
+    ┃ gate  ┃  ┃ up  ┃
+    ┗━━━┯━━━┛  ┗━━┯━━┛
+        │         │
+        └───┬─────┘
+            ▼
+       ┌─────────┐
+       │ silu x2 │
+       └────┬────┘
+            │
+            ▼
+        ┏━━━━━━━┓
+        ┃ down  ┃
+        ┗━━━┯━━━┛
+            │
+            ▼
+       ┏━━━━━━━━━┓
+       ┃ splitK  ┃
+       ┗━━━━┯━━━━┛
+            │
+            ▼
+         ┌─────┐
+         │ add │
+         └─────┘
+
+┃GEMM┃   │kernel│   s1 stream branch
+
+  1  kernel  norm x8  unrolled_elementwise_kernel [direct_copy]
+  2  kernel  norm x8  vectorized_elementwise_kernel [pow_tensor_scalar]
+  3  kernel  norm x8  reduce_kernel [Mean]
+  4  kernel  norm x8  vectorized_elementwise_kernel [add]
+  5  kernel  norm x8  vectorized_elementwise_kernel [rsqrt]
+  6  kernel  norm x8  elementwise_kernel [gpu]
+  7  kernel  norm x8  vectorized_elementwise_kernel [bfloat16_copy]
+  8  kernel  norm x8  vectorized_elementwise_kernel [Mul]
+  9  gemm    Q        cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x64_32x6_tn_align8
+ 10  gemm    K        cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x64_32x6_tn_align8
+ 11  gemm    V        cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x64_32x6_tn_align8
+ 12  kernel  cat      CatArrayBatchedCopy_vectorized
+ 13  kernel  cat      CatArrayBatchedCopy_vectorized
+ 14  gemm    QK       gemv2T_kernel_val
+ 15  kernel  ew x2    vectorized_elementwise_kernel [Mul]
+ 16  kernel  ew x2    unrolled_elementwise_kernel [direct_copy]
+ 17  kernel  softmax  softmax_warp_forward
+ 18  kernel  copy     vectorized_elementwise_kernel [bfloat16_copy]
+ 19  gemm    PV       gemvx::kernel
+ 20  gemm    out      cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_64x64_32x6_tn_align8
+ 21  kernel  norm x9  vectorized_elementwise_kernel [add]
+ 22  kernel  norm x9  unrolled_elementwise_kernel [direct_copy]
+ 23  kernel  norm x9  vectorized_elementwise_kernel [pow_tensor_scalar]
+ 24  kernel  norm x9  reduce_kernel [Mean]
+ 25  kernel  norm x9  vectorized_elementwise_kernel [add]
+ 26  kernel  norm x9  vectorized_elementwise_kernel [rsqrt]
+ 27  kernel  norm x9  elementwise_kernel [gpu]
+ 28  kernel  norm x9  vectorized_elementwise_kernel [bfloat16_copy]
+ 29  kernel  norm x9  vectorized_elementwise_kernel [Mul]
+ 30  gemm    gate     gemv2T_kernel_val
+ 31  gemm    up       gemv2T_kernel_val
+ 32  kernel  silu x2  vectorized_elementwise_kernel
+ 33  kernel  silu x2  vectorized_elementwise_kernel [Mul]
+ 34  gemm    down     cutlass_80_wmma_tensorop_bf16_s161616gemm_bf16_16x16_128x2_tn_align8
+ 35  gemm    splitK   splitKreduce_kernel
+ 36  kernel  add      vectorized_elementwise_kernel [add]

@@ -5,7 +5,6 @@ torch = pytest.importorskip("torch")
 pytestmark = pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 
 
-@pytest.mark.xfail(strict=False, reason="TODO(veer)")
 def test_capture_diamond_replays(tmp_path):
     from cgviz import capture, demo
 

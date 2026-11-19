@@ -3,7 +3,6 @@ import pytest
 from cgviz.layout import layered_layout
 
 
-@pytest.mark.xfail(strict=False, reason="TODO(veer)")
 def test_diamond_layers_and_determinism(diamond):
     pos = layered_layout(diamond)
     assert set(pos) == set(diamond.nodes)

@@ -31,8 +31,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = argparse.ArgumentParser(prog="cgviz", description="Draw CUDA graphs as graphs.")
     sub = p.add_subparsers(dest="command", required=True)
-    sub.add_parser("demo", parents=[common], help="capture and draw the built-in diamond")
-    d = sub.add_parser("draw", parents=[common], help="capture and draw path.py:function")
+    anim = argparse.ArgumentParser(add_help=False)
+    anim.add_argument("--no-miku", action="store_true", help="static graph only")
+    anim.add_argument("--speed", type=float, default=1.0, help="walk/stop speed multiplier")
+    anim.add_argument("--no-panel", action="store_true", help="no portrait side panel")
+    anim.add_argument("--full-names", action="store_true", help="untruncated kernel names")
+    for name, desc in (("diamond", "two branches on two streams, joined"),
+                       ("decode", "one transformer layer, 1 token"),
+                       ("prefill", "one transformer layer, 512 tokens")):
+        sub.add_parser(name, parents=[common, anim], help=f"capture and draw: {desc}")
+    sub.add_parser("demo", parents=[common, anim], help="capture and draw the built-in diamond")
+    d = sub.add_parser("draw", parents=[common, anim], help="capture and draw path.py:function")
     d.add_argument("target", help="path.py:function")
     sub.add_parser("time", parents=[common], help="eager vs graph replay over a size sweep")
     sub.add_parser("vs-ncu", parents=[common], help="this timer vs Nsight Compute")
@@ -82,18 +91,57 @@ def _render_and_write(args: argparse.Namespace, fig: Any, out: Path) -> None:
     print(f"wrote {out}")
 
 
-def _graph_pipeline(args: argparse.Namespace, workload: Any, inputs: Any) -> None:
-    from cgviz import capture, draw, graphdata, layout
+def _graph_pipeline(args: argparse.Namespace, workload: Any, inputs: Any,
+                    roles: list[str] | None = None, title: str = "") -> None:
+    from cgviz import capture
 
     graph = capture.capture(workload, inputs)
     if not capture.check_replay(graph, workload, inputs):
         raise RuntimeError("graph replay does not match eager output")
     out = _out_dir(args)
-    dot = capture.dump_dot(graph, out / "graph.dot")
-    g = graphdata.to_digraph(dot)
-    io.write_graph_json(g, out / "graph.json")
-    fig = draw.draw_graph(g, layout.layered_layout(g))
-    _render_and_write(args, fig, out)
+    capture.save_data(graph, out / "graph_data.json")
+    try:
+        capture.dump_dot(graph, out / "graph.dot")
+    except RuntimeError:
+        pass
+    show_graph(args, graph.data, roles, title or args.command, out)
+
+
+def layout_width(args: argparse.Namespace) -> int:
+    """Draw to the real terminal width unless --cols was given explicitly."""
+    cols, _ = resolve_size(args)
+    if not args.fit and cols == DEFAULT_COLS and sys.stdout.isatty():
+        cols = shutil.get_terminal_size((cols, args.rows)).columns
+    return cols
+
+
+def show_graph(args: argparse.Namespace, data: dict, roles: list[str] | None, title: str,
+               out: Path | None = None) -> str:
+    """Draw the graph (and, in a terminal, let Miku walk it). Returns the static text."""
+    from cgviz import draw, walk
+
+    width = layout_width(args)
+    lay, nodes, cn, ce = draw.layout(data, roles, width)
+    tty = sys.stdout.isatty()
+    pic = draw.to_ansi(lay) if tty else draw.to_text(lay)
+    lst = draw.node_list(nodes, cn, width, full=getattr(args, "full_names", False))
+    static = pic + "\n\n" + lst
+    if out is not None:
+        (out / "graph.txt").write_text(draw.to_text(lay) + "\n\n" + lst + "\n", encoding="utf-8")
+    if not getattr(args, "no_miku", True) and show.can_animate():
+        alay, _, acn, ace = draw.layout(data, roles, width, prefer=(lay.orient,),
+                                        node_gap=show.NODE_GAP[lay.orient])
+        frames = walk.Walk(alay, acn, ace, speed=args.speed).frames()
+        show.play(alay, acn, frames, title=f"cgviz {title}", panel=not args.no_panel)
+    show.print_static(static)
+    return static
+
+
+def cmd_preset(args: argparse.Namespace) -> None:
+    from cgviz import presets
+
+    workload, inputs = presets.get(args.command)
+    _graph_pipeline(args, workload, inputs, presets.ROLES.get(args.command), args.command)
 
 
 def _plot_pipeline(args: argparse.Namespace, rows: Sequence[Any], csv_name: str) -> None:
@@ -107,8 +155,10 @@ def _plot_pipeline(args: argparse.Namespace, rows: Sequence[Any], csv_name: str)
 def cmd_demo(args: argparse.Namespace) -> None:
     from cgviz import demo
 
+    from cgviz import presets
+
     workload, inputs = demo.diamond()
-    _graph_pipeline(args, workload, inputs)
+    _graph_pipeline(args, workload, inputs, presets.ROLES["diamond"], "diamond")
 
 
 def cmd_draw(args: argparse.Namespace) -> None:
@@ -137,6 +187,9 @@ def cmd_env(args: argparse.Namespace) -> None:
 
 
 COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
+    "diamond": cmd_preset,
+    "decode": cmd_preset,
+    "prefill": cmd_preset,
     "demo": cmd_demo,
     "draw": cmd_draw,
     "time": cmd_time,
@@ -161,6 +214,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     except NotImplementedError as e:
         print(f"not implemented yet: {_origin(e)}", file=sys.stderr)
         return 2
+    except RuntimeError as e:
+        print(f"cgviz: {e}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        return 130
     return 0
 
 

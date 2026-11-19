@@ -1,0 +1,16 @@
+                         ┌─s1────┐
+                       ┌▶│ relu  ├──────────────┐
+                       │ └───────┘              │
+                       │                        │
+╭┄┄┄┄┄┄┄┄┄╮  ┏━━━━━━━┓ │ ╭┄s2┄┄┄┄┄┄╮  ┏━s2━━━━┓ │ ┌─────┐
+┆ memset  ├─▶┃ gemm1 ┠─┴▶┆ memset  ├─▶┃ gemm2 ┠─┴▶│ add │
+╰┄┄┄┄┄┄┄┄┄╯  ┗━━━━━━━┛   ╰┄┄┄┄┄┄┄┄┄╯  ┗━━━━━━━┛   └─────┘
+
+┃GEMM┃   │kernel│   ┆memset/memcpy┆   s1 stream branch
+
+  1  mem     memset  memset
+  2  gemm    gemm1   ampere_sgemm_128x64_nn
+  3  kernel  relu    vectorized_elementwise_kernel [clamp]
+  4  mem     memset  memset
+  5  gemm    gemm2   ampere_sgemm_128x64_nn
+  6  kernel  add     vectorized_elementwise_kernel [add]
