@@ -163,7 +163,7 @@ def _keyframes(frames):
         if split_at is not None and "fork" not in idx and len(f.walkers) > 1:
             spread = min(abs(a[1][0] - b[1][0]) + abs(a[1][1] - b[1][1])
                          for a in f.walkers for b in f.walkers if a is not b)
-            if spread >= 8:
+            if spread >= 14 and len(f.walkers) == max(len(g.walkers) for g in frames[i:i + 60]):
                 idx["fork"] = i
         if f.event == "merge" and "join" not in idx:
             idx["join"] = max(i - 1, 0)

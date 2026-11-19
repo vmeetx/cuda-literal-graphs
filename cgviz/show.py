@@ -59,7 +59,7 @@ def print_grid(chars, colours) -> None:
 # ---------------------------------------------------------------- animation constants
 
 MIN_COLS, MIN_ROWS = 40, 16
-SPRITE_W, SPRITE_H = 12, 9          # cells (12x16 px padded to 18 px for the bob)
+SPRITE_W, SPRITE_H = 12, 10         # cells (12x16 px padded to 20 px for the bob and hop)
 PORTRAIT_W, PORTRAIT_H = 32, 24     # cells (32x48 px)
 PANEL_GAP = 2
 HL = (255, 244, 170)                # highlighted box border: bright glyph...
@@ -72,7 +72,7 @@ NODE_GAP = {"TB": 15, "LR": 10}     # sibling gap in the animated layout: room f
 
 def _pad(frame):
     w = len(frame[0])
-    return ["." * w] + list(frame) + ["." * w]
+    return ["." * w] * 2 + list(frame) + ["." * w] * 2
 
 
 _SPRITE_CACHE: dict = {}
@@ -93,8 +93,8 @@ def sprite_cells(name, facing=1, dy=0):
     return _SPRITE_CACHE[key]
 
 
-SIDE = (2, -(SPRITE_H - 1))          # beside a vertical line, feet on the walker's row
-ABOVE = (-(SPRITE_W // 2) + 1, -SPRITE_H)   # centred just above a horizontal line
+SIDE = (-(SPRITE_W // 2) + 1, -(SPRITE_H - 2))  # on a vertical line: centred, feet on its row
+ABOVE = (-(SPRITE_W // 2) + 1, -(SPRITE_H - 1))  # on a horizontal line: centred, just above
 
 
 def sprite_rect(pos, orient, off=None):
@@ -239,6 +239,22 @@ class Scene:
                     if 0 <= r < self.vh and 0 <= c < self.vw:
                         ch, fg, bg = sc
                         grid[r][c] = (ch, fg, bg, False)
+        # the box being visited stays in front of the sprites, so the stop is always visible
+        for n in f.highlight:
+            x0, y0, x1, y1 = self.lay.boxes[n]
+            for gy in range(y0, y1 + 1):
+                r = gy + self.oy - cy
+                if not 0 <= r < self.vh:
+                    continue
+                for gx in range(x0, x1 + 1):
+                    c = gx + self.ox - cx
+                    if not 0 <= c < self.vw:
+                        continue
+                    ch, fg, bold = cells.get((gx, gy), (" ", None, False))
+                    if (gx, gy) in hl:
+                        grid[r][c] = (ch, HL, HL_BG, True)
+                    else:
+                        grid[r][c] = (ch, fg, None, bold)
         if self.panel:
             name = "portrait_victory" if f.event == "victory" else "portrait_idle"
             px, py = self.vw + PANEL_GAP, max(0, (self.vh - PORTRAIT_H) // 2)

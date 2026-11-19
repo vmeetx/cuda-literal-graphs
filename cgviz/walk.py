@@ -18,7 +18,9 @@ from dataclasses import dataclass, field
 FPS = 12
 STOP_FRAMES = 14       # time standing at a node, at --speed 1
 VICTORY_FRAMES = 30
-WAIT_BACK = 10         # cells before the meeting point where walkers wait at a join
+WAIT_BACK = 13         # cells before the meeting point where walkers wait at a join
+SPRITE_GAP = 13        # cells a walker gets ahead before its sibling leaves a fork
+HOP = (0, 0, -1, -1, -2, -2, -1, -1)  # victory hop, pixels
 BOB = (0, 0, 0, -1, -1, -1, 0, 0, 0, 1, 1, 1)  # pixel offsets over one bob cycle
 
 
@@ -166,10 +168,13 @@ class Walk:
         """At the out-port: one walker per outgoing edge, all leaving together."""
         n = w.node
         kids = []
+        gap = max(1, round(SPRITE_GAP / self.speed))
         for i, v in enumerate(self.succ[n]):
             k = w if i == 0 else self._new(w.pos)
             k.facing, k.steps = w.facing, w.steps
             self._send(k, n, v)
+            if i > 0:   # siblings leave one after another, a sprite-width apart
+                k.state, k.timer = "hold", i * gap
             kids.append(k)
         self.splits[n] = len(kids)
         return "split" if len(kids) > 1 else ""
@@ -212,6 +217,11 @@ class Walk:
                         self._leave(w)
                 elif w.state == "victory":
                     w.timer -= 1
+                elif w.state == "hold":
+                    w.timer -= 1
+                    if w.timer <= 0:
+                        w.state = "walk"
+                        continue
                 if w.state == "walk":
                     for _ in range(moves):
                         if w.cells:
@@ -248,8 +258,8 @@ class Walk:
             for w in self.walkers:
                 self.trace.append((w.id, w.pos))
                 if w.state == "victory":
-                    sprite, dy = "victory_1", 0
-                elif w.state in ("stop", "wait", "done"):
+                    sprite, dy = "victory_1", HOP[frame_no % len(HOP)]
+                elif w.state in ("stop", "wait", "done", "hold"):
                     sprite, dy = "idle_1", BOB[frame_no % len(BOB)]
                 else:
                     sprite, dy = ("walk_1" if (w.steps // 2) % 2 == 0 else "walk_2"), 0
@@ -257,7 +267,17 @@ class Walk:
             hl = frozenset(w.node for w in self.walkers if w.state in ("stop", "victory"))
             if any(w.state == "victory" for w in self.walkers) and not event:
                 event = "victory"
-            out.append(Frame(snap, hl, self.caption, event))
+            caption = self.caption
+            if not hl:   # everyone is on the move: say where they are heading
+                heading = []
+                for w in sorted(self.walkers, key=lambda x: x.id):
+                    if w.node is not None and w.state in ("walk", "hold", "wait"):
+                        lab = self.nodes[w.node]["label"]
+                        if lab not in heading:
+                            heading.append(lab)
+                if heading:
+                    caption = "→ " + "  ·  ".join(heading)
+            out.append(Frame(snap, hl, caption, event))
             frame_no += 1
             if all(w.state in ("done", "victory") for w in self.walkers) and all(
                     w.timer <= 0 for w in self.walkers if w.state == "victory"):

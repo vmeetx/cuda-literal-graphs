@@ -40,7 +40,7 @@ def keyframe_indices(frames):
             xs = sorted(p[0] + p[1] * 1000 for _, p, *_r in f.walkers)
             spread = min(abs(a[1][0] - b[1][0]) + abs(a[1][1] - b[1][1])
                          for a in f.walkers for b in f.walkers if a is not b)
-            if spread >= 8:                              # once the branches have separated
+            if spread >= 14 and len(f.walkers) == max(len(g.walkers) for g in frames[i:i + 60]):
                 idx["fork"] = i
         if f.event == "merge" and "join" not in idx:
             idx["join"] = max(i - 1, 0)                 # the moment before they merge
