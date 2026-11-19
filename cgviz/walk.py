@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 FPS = 12
 STOP_FRAMES = 14       # time standing at a node, at --speed 1
 VICTORY_FRAMES = 30
+WAIT_BACK = 10         # cells before the meeting point where walkers wait at a join
 BOB = (0, 0, 0, -1, -1, -1, 0, 0, 0, 1, 1, 1)  # pixel offsets over one bob cycle
 
 
@@ -115,7 +116,7 @@ class Walk:
                                               else 0, self.path[(u, v)][-1][axis], v))
         # where each incoming walker waits at a join: just before its path first overlaps
         # another incoming path of the same node
-        self.wait_at = {}
+        self.wait_at, self.shared = {}, {}
         for v, ps in self.pred.items():
             if len(ps) < 2:
                 continue
@@ -126,7 +127,9 @@ class Walk:
                         others |= set(self.path[(w, v)])
                 cells = self.path[(u, v)]
                 i = next((k for k, c in enumerate(cells) if c in others), len(cells))
-                self.wait_at[(u, v)] = max(i - 1, 0)
+                self.shared[(u, v)] = min(i, len(cells) - 1)
+                # wait a sprite-width back from the meeting cell so the walkers stand apart
+                self.wait_at[(u, v)] = max(min(i - WAIT_BACK, i - 1), 0)
         self.final = max(n for n in nodes if not self.succ.get(n))
         self.walkers: list[Walker] = []
         self.next_id = 0
@@ -134,6 +137,8 @@ class Walk:
         self.visits: list[int] = []
         self.caption = ""
         self.trace: list[tuple[int, tuple]] = []   # (walker id, pos) for every frame
+        self.splits: dict[int, int] = {}           # node -> walkers it split into
+        self.merges: list[tuple[int, int]] = []    # (node, walkers that had arrived)
 
     # ------------------------------------------------------------- helpers
     def _new(self, pos):
@@ -166,6 +171,7 @@ class Walk:
             k.facing, k.steps = w.facing, w.steps
             self._send(k, n, v)
             kids.append(k)
+        self.splits[n] = len(kids)
         return "split" if len(kids) > 1 else ""
 
     def _send(self, w, u, v):
@@ -220,13 +226,21 @@ class Walk:
                         elif w.then == "wait":
                             w.state = "wait"
                             self.arrived.setdefault(w.node, []).append(w)
-            # joins: merge once every incoming walker has arrived
+                        elif w.then == "vanish":
+                            self.walkers.remove(w)      # merged into the surviving walker
+            # joins: once every incoming walker has arrived, they all walk in to the meeting
+            # cell; the extras vanish there and one walks on into the node
             for v, ws in list(self.arrived.items()):
                 if len(ws) == len(self.pred[v]):
+                    self.merges.append((v, len(ws)))
                     keep = min(ws, key=lambda x: x.id)
                     for x in ws:
-                        if x is not keep:
-                            self.walkers.remove(x)
+                        if x is keep:
+                            continue
+                        u = x.edge[0]
+                        cells = self.path[(u, v)]
+                        x.state, x.then = "walk", "vanish"
+                        x.cells = cells[self.wait_at[(u, v)] + 1: self.shared[(u, v)] + 1] or [x.pos]
                     keep.state, keep.cells, keep.then = "walk", keep.rest + self.route[v][0], "arrive"
                     del self.arrived[v]
                     event = "merge"
