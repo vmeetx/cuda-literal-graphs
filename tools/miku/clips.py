@@ -22,6 +22,7 @@ sys.path.insert(0, str(HERE))
 from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
 import sheet  # noqa: E402
+import q_walk  # noqa: E402
 import side_body  # noqa: E402
 import xsheet  # noqa: E402
 
@@ -40,7 +41,7 @@ def p1():
 
 
 def walk_frames(tired=False):
-    xs = xsheet.load("walk_tired" if tired else "walk")
+    xs = xsheet.load("walk_tired" if tired else "walk_side")
     period = xs["ticks"]
     out, t = [], 0
     pick = side_body.PASS_ALTS[PASS_PICK]
@@ -65,6 +66,18 @@ def walk_frames(tired=False):
     return xs, out
 
 
+def diagonal_frames():
+    """The cheerful walk in 3/4 view (q_walk), timed by the walk exposure sheet."""
+    xs = xsheet.load("walk")
+    out, t = [], 0
+    for f in xs["frames"]:
+        rows, meta = q_walk.pose(f["drawing"], t, xs["ticks"])
+        out.append({"drawing": f["drawing"], "ticks": f["ticks"], "key": f.get("key", False),
+                    "grid": rows, "anchors": meta})
+        t += f["ticks"]
+    return xs, out
+
+
 def turn_frames(name):
     xs = xsheet.load(name)
     out = []
@@ -72,6 +85,8 @@ def turn_frames(name):
         d = f["drawing"]
         if d == "front":
             rows, meta = p1(), {"view": "front", "facing": "front", "drawing": "front"}
+        elif d == "stand":
+            rows, meta = q_walk.pose("stand")
         else:
             rows, meta = side_body.pose_side(d, head=SIDE_FACE, swing=f.get("swing", 0.0))
         out.append({"drawing": d, "ticks": f["ticks"], "key": f.get("key", False),
@@ -167,9 +182,12 @@ def main(outdir=str(ROOT / "findings/miku_v2/gate2")):
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
     built = {}
-    for name, fn in (("walk", lambda: walk_frames(False)), ("walk_tired", lambda: walk_frames(True)),
+    for name, fn in (("walk", diagonal_frames), ("walk_side", lambda: walk_frames(False)),
+                     ("walk_tired", lambda: walk_frames(True)),
                      ("turn_to_side", lambda: turn_frames("turn_to_side")),
-                     ("turn_to_front", lambda: turn_frames("turn_to_front"))):
+                     ("turn_to_front", lambda: turn_frames("turn_to_front")),
+                     ("turn_to_side_tired", lambda: turn_frames("turn_to_side_tired")),
+                     ("turn_to_front_tired", lambda: turn_frames("turn_to_front_tired"))):
         xs, frames = fn()
         save_clip(name, xs, frames)
         contact_sheet(name, frames, out / f"contact_{name}.png")

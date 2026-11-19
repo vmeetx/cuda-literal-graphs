@@ -1,10 +1,11 @@
-# Side walk cycle, facing right (left = mirror). 12 fps; one cycle = 12 ticks = 1 s.
-# Contacts and passings are held 2 ticks (the readable keys); downs and ups 1 tick.
-# Cheerful: happy closed eye and open smile; the near hand spins the leek in circles in front
-# of her, 45 degrees per drawing (one full turn per cycle). The far arm swings against the legs.
-# Skirt and tie lag the hips by 1 tick; tails trail, fed by the previous tick's velocity.
+# Cheerful walk in a 3/4 (diagonal) view, facing right (left = mirror). 12 fps; 12 ticks = 1 s.
+# Study: a relaxed chibi stroll - body turned a little toward the viewer, head over the hips,
+# arms open (leek held up in the travel-side hand, other arm out low), small crossing steps,
+# closed happy eyes and an open smile. Contacts and passings held 2 ticks, downs and ups 1.
+# Body bobs down 1 px at contact/down and up 1 px at passing/up; the planted foot stays put.
+# Tails sway wide, 2 ticks behind; skirt hem and leek leaves lag a pixel.
 clip: walk
-view: side
+view: diagonal
 loop: true
 frames:
   - {drawing: contact_r, ticks: 2, key: true}

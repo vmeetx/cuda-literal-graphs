@@ -1,0 +1,17 @@
+# Side walk cycle (GATE 2c best-so-far, kept, not used at runtime), facing right. 12 fps; one cycle = 12 ticks = 1 s.
+# Contacts and passings are held 2 ticks (the readable keys); downs and ups 1 tick.
+# Cheerful: happy closed eye and open smile; the near hand spins the leek in circles in front
+# of her, 45 degrees per drawing (one full turn per cycle). The far arm swings against the legs.
+# Skirt and tie lag the hips by 1 tick; tails trail, fed by the previous tick's velocity.
+clip: walk_side
+view: side
+loop: true
+frames:
+  - {drawing: contact_r, ticks: 2, key: true}
+  - {drawing: down_r, ticks: 1}
+  - {drawing: pass_r, ticks: 2, key: true}
+  - {drawing: up_r, ticks: 1}
+  - {drawing: contact_l, ticks: 2, key: true}
+  - {drawing: down_l, ticks: 1}
+  - {drawing: pass_l, ticks: 2, key: true}
+  - {drawing: up_l, ticks: 1}

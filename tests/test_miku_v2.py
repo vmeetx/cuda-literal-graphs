@@ -8,7 +8,8 @@ import pytest
 from cgviz import miku_assets, miku_motion
 
 ROOT = Path(__file__).resolve().parents[1]
-CLIPS = ["walk", "walk_tired", "turn_to_side", "turn_to_front"]
+CLIPS = ["walk", "walk_side", "walk_tired", "turn_to_side", "turn_to_front", "turn_to_side_tired",
+         "turn_to_front_tired"]
 
 
 @pytest.mark.parametrize("clip", CLIPS)
@@ -51,7 +52,8 @@ def test_walk_head_only_bobs():
     f0 = d["frames"][0]
     def head(f):
         b = f["anchors"]["bob"]
-        return [r[40:55] for r in f["grid"][2 + b:30 + b]]   # face, fringe, crown: no tail or spinning leek there
+        x0, x1 = f["anchors"].get("head_cols", [40, 55])     # face, fringe, crown: no tail or leek
+        return [r[x0:x1] for r in f["grid"][2 + b:30 + b]]
     h0 = head(f0)
     for f in d["frames"][1:]:
         assert head(f) == h0, f["drawing"]
@@ -132,3 +134,18 @@ def test_cheerful_walk_is_upright():
     for f in miku_assets.load("walk")["frames"]:
         a = f["anchors"]
         assert a["head_cx"] - a["hip_cx"] <= 1.0, (f["drawing"], a["head_cx"], a["hip_cx"])
+
+
+def test_tired_walk_uses_side_view_turns():
+    ticks = miku_motion.plan([("walk", 30), ("stop", None), ("walk", 50)], x0=10, tired={2})
+    clips = [t.clip for t in ticks]
+    assert "turn_to_side" in clips and "turn_to_side_tired" in clips
+    assert "turn_to_front" in clips and "walk_tired" in clips
+    assert miku_motion.violations(ticks) == []
+
+
+def test_diagonal_walk_keeps_a_foot_on_the_ground():
+    """3/4 walk: in every drawing at least one foot touches the baseline (row 67)."""
+    for f in miku_assets.load("walk")["frames"]:
+        assert any(c not in ".Z" for c in f["grid"][67]), f["drawing"]
+        assert all(c in ".Z" for c in f["grid"][68]), f["drawing"]

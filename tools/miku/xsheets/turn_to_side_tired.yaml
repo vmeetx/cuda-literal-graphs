@@ -1,0 +1,8 @@
+# Tired: front -> 3/4 -> side (facing right; left = mirror). The tails swing through the turn.
+clip: turn_to_side_tired
+view: turn
+loop: false
+frames:
+  - {drawing: front, ticks: 2, key: true}
+  - {drawing: three_quarter, ticks: 2, swing: 0.45}
+  - {drawing: side_stand, ticks: 2, key: true, swing: -0.2}

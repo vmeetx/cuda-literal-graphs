@@ -13,6 +13,7 @@ import beforeafter  # noqa: E402
 import sheet  # noqa: E402
 
 OUT = ROOT / "findings/miku_v2/gate2c"
+LABELS = ("OLD (GATE 2b)", "NEW")
 F = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 15)
 
 
@@ -31,19 +32,23 @@ def strip(rows_list, s):
     return out
 
 
-def main(old_path, new_path):
+def main(old_path, new_path, out=None, old_label=None, new_label=None):
+    global OUT, LABELS
+    if out:
+        OUT = Path(out)
+        LABELS = (old_label or LABELS[0], new_label or LABELS[1])
     OUT.mkdir(parents=True, exist_ok=True)
     old, new = frames(old_path), frames(new_path)
     order = list(new)
     pal = sheet.palette()
     tiles = []
-    for label, fr in (("OLD (GATE 2b)", old), ("NEW", new)):
+    for label, fr in ((LABELS[0], old), (LABELS[1], new)):
         one = strip([fr[d] for d in order], 1)
         big = strip([fr[d] for d in ("contact_r", "pass_r")], 8)
         t, cols = beforeafter.terminal_text(fr["pass_r"], pal)
         n = len(t.splitlines())
-        dark = beforeafter.shot(t, cols, n, (30, 30, 30), (210, 212, 216), OUT / f"{label[:3].lower()}_dark.png")
-        light = beforeafter.shot(t, cols, n, (255, 255, 255), (20, 20, 20), OUT / f"{label[:3].lower()}_light.png")
+        dark = beforeafter.shot(t, cols, n, (30, 30, 30), (210, 212, 216), OUT / f"{label.split()[0].lower()}_dark.png")
+        light = beforeafter.shot(t, cols, n, (255, 255, 255), (20, 20, 20), OUT / f"{label.split()[0].lower()}_light.png")
         tiles.append((label, one, big, dark, light))
     W = max(t[2].width + t[3].width + t[4].width for t in tiles) + 80
     H = sum(max(t[1].height, 0) + t[2].height + 90 for t in tiles) + 20

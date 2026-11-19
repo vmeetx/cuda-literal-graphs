@@ -1,8 +1,7 @@
-# Side -> 3/4 -> front (facing right; left = mirror). The tails swing through the turn.
+# 3/4 -> front (facing right; left = mirror), out of the diagonal walk.
 clip: turn_to_front
 view: turn
 loop: false
 frames:
-  - {drawing: side_stand, ticks: 2, key: true}
-  - {drawing: three_quarter, ticks: 2, swing: -0.45}
+  - {drawing: stand, ticks: 2, key: true}
   - {drawing: front, ticks: 2, key: true}

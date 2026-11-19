@@ -20,7 +20,7 @@ WALK_CELLS_PER_TICK = 1
 
 @dataclass(frozen=True)
 class Tick:
-    clip: str          # "idle" (front hold), "walk", "walk_tired", "turn_to_side", "turn_to_front"
+    clip: str          # "idle", "walk", "walk_tired", "turn_to_side[_tired]", "turn_to_front[_tired]"
     frame: int         # frame index within the clip
     facing: str        # "front", "right" or "left"
     x: int             # walker cell
@@ -45,12 +45,13 @@ def plan(moves, x0=0, idle_ticks=12, tired=None):
     tired: optional set of move indices that use walk_tired. Returns a list of Ticks."""
     out: list[Tick] = []
     x, facing = x0, "front"
+    style = ""                                     # "_tired": side-view turns for the tired walk
     for _ in range(idle_ticks):
         out.append(Tick("idle", 0, "front", x))
     for k, (kind, target) in enumerate(moves):
         if kind == "stop":
             if facing != "front":
-                _play(out, "turn_to_front", facing, x)
+                _play(out, "turn_to_front" + style, facing, x)
                 facing = "front"
             for _ in range(idle_ticks):
                 out.append(Tick("idle", 0, "front", x))
@@ -59,13 +60,15 @@ def plan(moves, x0=0, idle_ticks=12, tired=None):
         if d == 0:
             continue
         want = "right" if d > 0 else "left"
-        if facing not in ("front", want):          # opposite profile: through the front
-            _play(out, "turn_to_front", facing, x)
+        new_style = "_tired" if tired and k in tired else ""
+        if facing != "front" and (facing != want or new_style != style):
+            _play(out, "turn_to_front" + style, facing, x)   # reversal or change of walk: via front
             facing = "front"
+        style = new_style
         if facing == "front":
-            _play(out, "turn_to_side", want, x)
+            _play(out, "turn_to_side" + style, want, x)
             facing = want
-        clip = "walk_tired" if tired and k in tired else "walk"
+        clip = "walk" + style
         seq = [(i, n) for i, n in enumerate(_clip_ticks(clip))]
         step = 0
         while x != target:
