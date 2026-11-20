@@ -333,8 +333,8 @@ LEGS = {
         "...BFFFFB..", "...BFFFFB..", "...BBBBBB..", "..........."]),
     "p2": (2, [  # tired passing: the foot barely lifts (1 px), knee hardly forward
         "..BEEEB....", "..BEEEB....", "..BEEEB....", "..BFFFB....", "...BFFFB...",
-        "...BFFFB...", "...BFFFB...", "...BFFFB...", "...BFFFB...", "...BFFFB...",
-        "...BFFFFB..", "...BFFFFB..", "...BBBBBB..", "..........."]),
+        "...BFFFB...", "...BFFFB...", "..BFFFB....", "..BFFFB....", "..BFFFB....",
+        "..BFFFFB...", "..BFFFFB...", "..BBBBBB...", "..........."]),
     "P": (2, [  # passing: knee forward, foot off the ground
         "..BEEEB....", "..BEEEB....", "..BEEEEB...", "...BEEEEB..", "....BFFFFB.",
         "....BFFFFB.", "....BFFFB..", "...BFFFB...", "..BFFFB....", "..BFFFFB...",
@@ -399,8 +399,6 @@ LIMP_ARM = (29, 35, [      # near arm hanging limp in front: skin, sleeve taperi
     ".BDDMB",
     ".BDDMB",
     ".BDDMB",
-    ".BDDMB",
-    ".BDDMB",
     ".BAAAB",
     ".BEEEB",
     ".BEEPB",
@@ -441,7 +439,7 @@ LOW_ARM = (43, 35, [       # lowering, 2: arm hanging at her far side, leek poin
 ])
 DRAG_LEAVES = [            # three blades scraping along the ground behind her, gaps between
     "..B.....B.......",
-    ".BbB...BbB......",
+    ".BIB...BIB......",
     "..BIB..BIB...BB.",
     "...BIB.BXIB.BIIB",
     "BB..BIBBXIBBIXB.",
@@ -450,7 +448,7 @@ DRAG_LEAVES = [            # three blades scraping along the ground behind her, 
 ]
 DRAG_LEAVES_2 = [          # scrape state 2: blades bent back a pixel
     ".B......B.......",
-    "BbB....BbB......",
+    "BIB....BIB......",
     ".BIB...BIB....B.",
     "..BIB..BXIB..BIB",
     "B..BIB.BXIBBBIB.",
@@ -477,7 +475,7 @@ def stalk(cv, a, b, bob, behind=False):
         x = round(x0 + (x1 - x0) * i / n)
         y = round(y0 + (y1 - y0) * i / n) + bob
         f = i / n
-        body = ("L", "L", "N") if f < 0.3 else ("b", "b", "I") if f < 0.45 else ("I", "I", "X")
+        body = ("L", "L", "N") if f < 0.18 else ("b", "b", "I") if f < 0.45 else ("I", "I", "X")
         for dx, ch in ((-1, "B"), (0, body[0]), (1, body[1]), (2, body[2]), (3, "B")):
             if not behind or (x + dx, y) not in cv:
                 cv[(x + dx, y)] = ch
