@@ -2,7 +2,12 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-pytestmark = pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
+from cgviz import capture as _capture  # noqa: E402
+
+pytestmark = [
+    pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available"),
+    pytest.mark.skipif(not _capture.supported(torch), reason="this torch can't list graph nodes"),
+]
 
 
 def test_capture_diamond_replays(tmp_path):

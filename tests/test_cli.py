@@ -99,3 +99,25 @@ def test_bad_target(tmp_path):
 def test_env_runs(capsys):
     assert cli.main(["env"]) == 0
     assert "python" in capsys.readouterr().out
+
+
+def test_show_replays_a_saved_capture(tmp_path, capsys):
+    """`cgviz show` draws a saved graph_data.json with the provenance saved beside it; no GPU."""
+    import json
+    import shutil
+    from pathlib import Path
+
+    run = tmp_path / "decode-run"
+    run.mkdir()
+    shutil.copy(Path(__file__).parent / "fixtures/graphs/decode.json", run / "graph_data.json")
+    (run / "provenance.json").write_text(json.dumps(
+        {"streams": 3, "gpu": "Test GPU", "cuda": "13.0", "cublas": "13.1", "shapes": ["1x1024 @ 1024x1024"]}))
+    assert cli.main(["show", str(run / "graph_data.json"), "--labels", "decode", "--no-miku"]) == 0
+    out = capsys.readouterr().out
+    assert "Test GPU" in out and "3 streams" in out
+    assert "vectorized_elementwise_kernel" in out and "_ZN" not in out     # names readable anywhere
+
+
+def test_show_missing_file_fails_cleanly(tmp_path, capsys):
+    assert cli.main(["show", str(tmp_path / "nope.json"), "--no-miku"]) == 1
+    assert capsys.readouterr().err.startswith("cgviz:")

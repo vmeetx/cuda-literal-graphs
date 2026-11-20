@@ -46,6 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("demo", parents=[common, anim], help="capture and draw the built-in diamond")
     d = sub.add_parser("draw", parents=[common, anim], help="capture and draw path.py:function")
     d.add_argument("target", help="path.py:function")
+    sh = sub.add_parser("show", parents=[common, anim],
+                        help="replay a saved capture (out/.../graph_data.json); no GPU needed")
+    sh.add_argument("path", type=Path, help="graph_data.json written by an earlier run")
+    sh.add_argument("--labels", choices=("diamond", "decode", "prefill"),
+                    help="name the GEMMs as that preset does (Q, K, V, ...)")
     sub.add_parser("time", parents=[common], help="eager vs graph replay over a size sweep")
     sub.add_parser("vs-ncu", parents=[common], help="this timer vs Nsight Compute")
     sub.add_parser("env", help="print environment versions")
@@ -177,6 +182,29 @@ def cmd_draw(args: argparse.Namespace) -> None:
     _graph_pipeline(args, workload, inputs)
 
 
+def cmd_show(args: argparse.Namespace) -> None:
+    import json
+
+    from cgviz import presets
+
+    try:
+        data = json.loads(args.path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise RuntimeError(f"can't read {args.path}: {e}") from e
+    from cgviz import provenance
+
+    roles = presets.ROLES.get(args.labels) if args.labels else None
+    prov = None                       # the capture's own header, saved beside it
+    side = args.path.with_name("provenance.json")
+    if side.is_file():
+        try:
+            prov = provenance.Provenance.from_dict(json.loads(side.read_text(encoding="utf-8")))
+        except (OSError, ValueError, TypeError):
+            prov = None
+    title = args.path.parent.name if args.path.name == "graph_data.json" else args.path.stem
+    show_graph(args, data, roles, title, prov=prov)
+
+
 def cmd_time(args: argparse.Namespace) -> None:
     from cgviz import demo, measure
 
@@ -203,6 +231,7 @@ COMMANDS: dict[str, Callable[[argparse.Namespace], None]] = {
     "prefill": cmd_preset,
     "demo": cmd_demo,
     "draw": cmd_draw,
+    "show": cmd_show,
     "time": cmd_time,
     "vs-ncu": cmd_vs_ncu,
     "env": cmd_env,

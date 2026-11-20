@@ -94,7 +94,11 @@ def load(data, roles=None):
                 ready.append(k)
                 ready.sort()
     m = {old: new + 1 for new, old in enumerate(order)}
-    full = demangle([raw[o].get("kernel_name") for o in order])
+    # names demangled where the graph was captured (saved as "demangled"), else c++filt here
+    full = [raw[o].get("demangled") or raw[o].get("kernel_name") or "" for o in order]
+    todo = [i for i, f in enumerate(full) if f.startswith("_Z")]
+    for i, d in zip(todo, demangle([full[i] for i in todo])):
+        full[i] = d
     nodes = {}
     gi = 0
     for o, f in zip(order, full):

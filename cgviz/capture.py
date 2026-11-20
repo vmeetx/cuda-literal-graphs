@@ -23,7 +23,23 @@ def _torch():
 
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA is not available")
+    if not supported(torch):
+        raise RuntimeError(
+            f"torch {torch.__version__} can't hand back a captured graph's nodes (it lacks "
+            "CUDAGraph(keep_graph=True) and get_graph_data()); install the torch pinned in "
+            "requirements.txt, or capture elsewhere and replay here with `cgviz show`")
     return torch
+
+
+def supported(torch) -> bool:
+    """True when this torch can keep a captured graph and list its nodes."""
+    if not hasattr(torch.cuda.CUDAGraph, "get_graph_data"):
+        return False
+    try:
+        torch.cuda.CUDAGraph(keep_graph=True)
+    except TypeError:
+        return False
+    return True
 
 
 def _warmup_gpu(seconds: float = 0.5) -> None:
@@ -151,8 +167,16 @@ def dump_dot(graph: Captured, path: Path) -> Path:
 
 
 def save_data(graph: Captured, path: Path) -> Path:
-    """Write the graph data as JSON (the drawer's input)."""
-    Path(path).write_text(json.dumps(graph.data, indent=1), encoding="utf-8")
+    """Write the graph data as JSON (the drawer's input). Kernel names are also saved
+    demangled, so the file reads the same on a machine without c++filt (Windows)."""
+    from cgviz.graphdata import demangle
+
+    data = graph.data
+    ks = [n for n in data.get("nodes", []) if n.get("kernel_name")]
+    for n, d in zip(ks, demangle([n["kernel_name"] for n in ks])):
+        if d != n["kernel_name"]:
+            n["demangled"] = d
+    Path(path).write_text(json.dumps(data, indent=1), encoding="utf-8")
     if graph.provenance is not None:
         Path(path).with_name("provenance.json").write_text(
             json.dumps(graph.provenance.to_dict(), indent=1), encoding="utf-8")
