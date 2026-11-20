@@ -8,8 +8,11 @@ import pytest
 from cgviz import miku_assets, miku_motion
 
 ROOT = Path(__file__).resolve().parents[1]
-CLIPS = ["walk", "walk_side", "walk_tired", "turn_to_side", "turn_to_front", "turn_to_side_tired",
-         "turn_to_front_tired"]
+CLIPS = ["walk", "walk_tired", "walk_to_tired", "walk_from_tired", "turn_to_side", "turn_to_front",
+         "turn_to_side_tired", "turn_to_front_tired",
+         # fallbacks, kept but unused: the side-view walks and their turns
+         "walk_side", "walk_tired_side", "turn_to_side_tired_side", "turn_to_front_tired_side"]
+DIAGONAL = ["walk", "walk_tired", "walk_to_tired", "walk_from_tired"]
 
 
 @pytest.mark.parametrize("clip", CLIPS)
@@ -136,16 +139,78 @@ def test_cheerful_walk_is_upright():
         assert a["head_cx"] - a["hip_cx"] <= 1.0, (f["drawing"], a["head_cx"], a["hip_cx"])
 
 
-def test_tired_walk_uses_side_view_turns():
-    ticks = miku_motion.plan([("walk", 30), ("stop", None), ("walk", 50)], x0=10, tired={2})
+def test_tired_rest_uses_tired_turns_and_transitions():
+    """Approaching a rest she tires on the way (walk_to_tired -> walk_tired), enters and leaves
+    the rest with the tired turns, and walks it off (walk_from_tired -> walk)."""
+    ticks = miku_motion.plan([("walk", 120), ("stop", None), ("walk", 20)], x0=10, tired={0})
     clips = [t.clip for t in ticks]
-    assert "turn_to_side" in clips and "turn_to_side_tired" in clips
-    assert "turn_to_front" in clips and "walk_tired" in clips
+    order = [c for i, c in enumerate(clips) if i == 0 or clips[i - 1] != c]
+    assert order == ["idle", "turn_to_side", "walk_to_tired", "walk_tired", "turn_to_front_tired",
+                     "idle", "turn_to_side_tired", "walk_from_tired", "walk"], order
     assert miku_motion.violations(ticks) == []
 
 
-def test_diagonal_walk_keeps_a_foot_on_the_ground():
-    """3/4 walk: in every drawing at least one foot touches the baseline (row 67)."""
-    for f in miku_assets.load("walk")["frames"]:
+def _sys_q_walk():
+    sys.path.insert(0, str(ROOT / "tools/miku"))
+    import q_walk
+    return q_walk
+
+
+@pytest.mark.parametrize("clip", DIAGONAL)
+def test_diagonal_walk_keeps_a_foot_on_the_ground(clip):
+    """3/4 walks: in every drawing at least one foot touches the baseline (row 67)."""
+    for f in miku_assets.load(clip)["frames"]:
         assert any(c not in ".Z" for c in f["grid"][67]), f["drawing"]
         assert all(c in ".Z" for c in f["grid"][68]), f["drawing"]
+
+
+@pytest.mark.parametrize("clip", DIAGONAL)
+def test_hem_has_no_long_straight_run(clip):
+    """Lint: no straight horizontal run longer than 5 px on the hem outline in a walk frame."""
+    q_walk = _sys_q_walk()
+    for f in miku_assets.load(clip)["frames"]:
+        pts = [tuple(p) for p in f["anchors"]["hem_outline"]]
+        assert q_walk.straight_runs(pts) == [], (clip, f["drawing"], q_walk.straight_runs(pts))
+
+
+def test_skirt_never_narrower_than_at_rest():
+    """Full width: flare may widen the skirt, nothing narrows it below the approved rest width."""
+    q_walk = _sys_q_walk()
+    _, rest = q_walk.pose("stand")
+    lo, hi = min(p[0] for p in rest["hem_outline"]), max(p[0] for p in rest["hem_outline"])
+    for clip in DIAGONAL + ["turn_to_side", "turn_to_front", "turn_to_side_tired", "turn_to_front_tired"]:
+        for f in miku_assets.load(clip)["frames"]:
+            pts = f["anchors"].get("hem_outline")
+            if pts:
+                xs = [p[0] for p in pts]
+                assert min(xs) <= lo and max(xs) >= hi, (clip, f["drawing"], min(xs), max(xs))
+
+
+def test_hem_trails_the_hips():
+    """The hem shows the step phase of the drawing before (cheerful) or two before (tired)."""
+    q_walk = _sys_q_walk()
+    for clip, lag in (("walk", 1), ("walk_tired", 2)):
+        frames = miku_assets.load(clip)["frames"]
+        order = [f["drawing"] for f in frames]
+        for k, f in enumerate(frames):
+            assert f["anchors"]["hem"] == q_walk.hem_for(order, k, lag), (clip, k)
+
+
+@pytest.mark.parametrize("clip", ["turn_to_front", "turn_to_front_tired"])
+def test_turn_settles_waist_first_hem_last(clip):
+    """Stopping or turning: the waist is already still while the hem is still moving; the hem
+    comes to rest one drawing later."""
+    a, b = miku_assets.load(clip)["frames"][:2]
+    assert a["anchors"]["hem"] != "rest" and b["anchors"]["hem"] == "rest"
+    waist = lambda f: [r[30:48] for r in f["grid"][45:48]]
+    assert waist(a) == waist(b)
+
+
+def test_tired_walk_gait():
+    """Tired 3/4 walk: bob 0-1 px, longer holds than the cheerful walk, line eyes, leek dragged.
+    Exempt from the head-over-hips check: the head droops forward on purpose."""
+    d = miku_assets.load("walk_tired")
+    assert sum(f["ticks"] for f in d["frames"]) > sum(miku_assets.ticks("walk"))
+    for f in d["frames"]:
+        a = f["anchors"]
+        assert a["bob"] in (0, 1) and a["face"] == "line" and a["leek"] == "drag", f["drawing"]

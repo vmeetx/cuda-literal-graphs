@@ -1,8 +1,8 @@
-# Tired: front -> 3/4 -> side (facing right; left = mirror). The tails swing through the turn.
+# Leaving a rest: front -> tired 3/4 (facing right; left = mirror), into walk_from_tired.
+# Slower than the cheerful turn; the hem trails.
 clip: turn_to_side_tired
 view: turn
 loop: false
 frames:
-  - {drawing: front, ticks: 2, key: true}
-  - {drawing: three_quarter, ticks: 2, swing: 0.45}
-  - {drawing: side_stand, ticks: 2, key: true, swing: -0.2}
+  - {drawing: front, ticks: 3, key: true}
+  - {drawing: stand_go, ticks: 3, key: true, u: 1.0}

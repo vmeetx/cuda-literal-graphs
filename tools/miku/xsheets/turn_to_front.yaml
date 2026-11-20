@@ -1,7 +1,9 @@
-# 3/4 -> front (facing right; left = mirror), out of the diagonal walk.
+# 3/4 -> front (facing right; left = mirror), out of the diagonal walk. The waist settles first,
+# the hem last: stand_settle (hem still swinging), stand (hem at rest), then front.
 clip: turn_to_front
 view: turn
 loop: false
 frames:
-  - {drawing: stand, ticks: 2, key: true}
+  - {drawing: stand_settle, ticks: 2, key: true}
+  - {drawing: stand, ticks: 1}
   - {drawing: front, ticks: 2, key: true}

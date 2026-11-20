@@ -1,14 +1,16 @@
-# Tired walk before a rest: the walk drawings held longer, head and shoulders 1 px lower,
-# P6's sleepy face, the leek dragged behind on the ground. One cycle = 20 ticks.
+# Tired walk in 3/4 view, facing right (left = mirror), before a rest. 12 fps; 20 ticks = 1.67 s.
+# Slower: keys held 3 ticks, downs and ups 2. Short shuffling steps (feet barely lift), bob 0-1 px,
+# rounded shoulders and a drooping head, line eyes. The near arm hangs limp; the far hand drags
+# the leek behind her, leaves scraping. Tails hang heavy and close; the skirt waves less, later.
 clip: walk_tired
-view: side
+view: diagonal
 loop: true
 frames:
-  - {drawing: contact_r, ticks: 3, key: true}
-  - {drawing: down_r, ticks: 2}
-  - {drawing: pass_r, ticks: 3, key: true}
-  - {drawing: up_r, ticks: 2}
-  - {drawing: contact_l, ticks: 3, key: true}
-  - {drawing: down_l, ticks: 2}
-  - {drawing: pass_l, ticks: 3, key: true}
-  - {drawing: up_l, ticks: 2}
+  - {drawing: contact_r, ticks: 3, key: true, u: 1.0}
+  - {drawing: down_r, ticks: 2, u: 1.0}
+  - {drawing: pass_r, ticks: 3, key: true, u: 1.0}
+  - {drawing: up_r, ticks: 2, u: 1.0}
+  - {drawing: contact_l, ticks: 3, key: true, u: 1.0}
+  - {drawing: down_l, ticks: 2, u: 1.0}
+  - {drawing: pass_l, ticks: 3, key: true, u: 1.0}
+  - {drawing: up_l, ticks: 2, u: 1.0}

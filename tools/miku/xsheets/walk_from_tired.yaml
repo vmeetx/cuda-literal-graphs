@@ -1,0 +1,23 @@
+# Tired -> cheerful after the rest, as she walks off (3/4, facing right): walk_to_tired reversed
+# in tiredness (line eyes -> half -> "^ ^", leek lifts from the ground to held up, the bounce
+# returns), with the steps going from the tired holds back to the cheerful ones.
+clip: walk_from_tired
+view: diagonal
+loop: false
+frames:
+  - {drawing: contact_r, ticks: 2, key: true, u: 1.0}
+  - {drawing: down_r, ticks: 2, u: 0.95}
+  - {drawing: pass_r, ticks: 3, key: true, u: 0.9}
+  - {drawing: up_r, ticks: 1, u: 0.84}
+  - {drawing: contact_l, ticks: 2, key: true, u: 0.78}
+  - {drawing: down_l, ticks: 2, u: 0.72}
+  - {drawing: pass_l, ticks: 3, key: true, u: 0.66}
+  - {drawing: up_l, ticks: 1, u: 0.6}
+  - {drawing: contact_r, ticks: 2, key: true, u: 0.52}
+  - {drawing: down_r, ticks: 1, u: 0.46}
+  - {drawing: pass_r, ticks: 2, key: true, u: 0.4}
+  - {drawing: up_r, ticks: 1, u: 0.34}
+  - {drawing: contact_l, ticks: 2, key: true, u: 0.27}
+  - {drawing: down_l, ticks: 1, u: 0.2}
+  - {drawing: pass_l, ticks: 2, key: true, u: 0.12}
+  - {drawing: up_l, ticks: 1, u: 0.06}

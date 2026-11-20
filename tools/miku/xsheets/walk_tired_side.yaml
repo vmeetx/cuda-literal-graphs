@@ -1,0 +1,15 @@
+# FALLBACK (GATE 2d, side view; nothing uses it once the 3/4 tired walk lands).
+# Tired walk before a rest: the walk drawings held longer, head and shoulders 1 px lower,
+# P6's sleepy face, the leek dragged behind on the ground. One cycle = 20 ticks.
+clip: walk_tired_side
+view: side
+loop: true
+frames:
+  - {drawing: contact_r, ticks: 3, key: true}
+  - {drawing: down_r, ticks: 2}
+  - {drawing: pass_r, ticks: 3, key: true}
+  - {drawing: up_r, ticks: 2}
+  - {drawing: contact_l, ticks: 3, key: true}
+  - {drawing: down_l, ticks: 2}
+  - {drawing: pass_l, ticks: 3, key: true}
+  - {drawing: up_l, ticks: 2}

@@ -1,7 +1,7 @@
 """Dev demo: Miku v2 walks across one box top and back, with turns (facing rules from
 cgviz.miku_motion, rendering with cgviz.halfblock and cgviz.show's diff redraw).
 
-    python tools/miku/demo_walk.py [--tired] [--cols 150] [--rows 44]
+    python tools/miku/demo_walk.py [--tired | --rest] [--cols 150] [--rows 44]
 """
 import argparse
 import sys
@@ -58,18 +58,23 @@ def scene(cols, rows, tick, label, bg=None, top=37):
 def main():
     a = argparse.ArgumentParser()
     a.add_argument("--tired", action="store_true")
+    a.add_argument("--rest", action="store_true")
     a.add_argument("--cols", type=int, default=150)
     a.add_argument("--rows", type=int, default=44)
     o = a.parse_args()
     span = o.cols - 74 - 8
-    if o.tired:
+    if o.rest:
+        moves = [("walk", 4 + span), ("stop", None), ("walk", 4), ("stop", None)]
+        ticks = miku_motion.plan(moves, x0=4, idle_ticks=14, tired={0})
+        label = "cheerful -> tired on the way to a rest, tired turns, rest, then walking it off"
+    elif o.tired:
         moves = [("walk", 4 + span), ("stop", None)]
         ticks = miku_motion.plan(moves, x0=4, idle_ticks=10, tired={0})
         label = "walk_tired: dragging the leek before a rest"
     else:
         moves = [("walk", 4 + span), ("stop", None), ("walk", 4), ("stop", None)]
         ticks = miku_motion.plan(moves, x0=4, idle_ticks=10)
-        label = "side walk across one box top, both directions, with turns"
+        label = "3/4 walk across one box top, both directions, with turns"
     assert not miku_motion.violations(ticks)
     out = sys.stdout
     out.write("\x1b[?1049h\x1b[?25l\x1b[2J")

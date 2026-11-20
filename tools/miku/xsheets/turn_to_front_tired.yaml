@@ -1,8 +1,9 @@
-# Tired: side -> 3/4 -> front (facing right; left = mirror). The tails swing through the turn.
+# Entering a rest: tired 3/4 -> front (facing right; left = mirror). Waist settles first, the
+# hem last (stand_settle, stand), then she faces front for the rest.
 clip: turn_to_front_tired
 view: turn
 loop: false
 frames:
-  - {drawing: side_stand, ticks: 2, key: true}
-  - {drawing: three_quarter, ticks: 2, swing: -0.45}
-  - {drawing: front, ticks: 2, key: true}
+  - {drawing: stand_settle, ticks: 3, key: true, u: 1.0}
+  - {drawing: stand, ticks: 2, u: 1.0}
+  - {drawing: front, ticks: 3, key: true}

@@ -1,0 +1,24 @@
+# Cheerful -> tired over two walk cycles, as she nears a 4-node rest (3/4, facing right).
+# u = tiredness: "^ ^" eyes -> half closed (u 0.3) -> line eyes (u 0.65); the leek lowers
+# (up -> out -> down at her side -> dragged, u 0.25 / 0.45 / 0.7); the up-bounce dies first,
+# then the down-bob; the skirt calms; cycle 2 slows to the tired holds and steps.
+clip: walk_to_tired
+view: diagonal
+loop: false
+frames:
+  - {drawing: contact_r, ticks: 2, key: true, u: 0.06}
+  - {drawing: down_r, ticks: 1, u: 0.12}
+  - {drawing: pass_r, ticks: 2, key: true, u: 0.2}
+  - {drawing: up_r, ticks: 1, u: 0.27}
+  - {drawing: contact_l, ticks: 2, key: true, u: 0.34}
+  - {drawing: down_l, ticks: 1, u: 0.4}
+  - {drawing: pass_l, ticks: 2, key: true, u: 0.46}
+  - {drawing: up_l, ticks: 1, u: 0.52}
+  - {drawing: contact_r, ticks: 2, key: true, u: 0.6}
+  - {drawing: down_r, ticks: 2, u: 0.66}
+  - {drawing: pass_r, ticks: 3, key: true, u: 0.72}
+  - {drawing: up_r, ticks: 1, u: 0.78}
+  - {drawing: contact_l, ticks: 2, key: true, u: 0.84}
+  - {drawing: down_l, ticks: 2, u: 0.9}
+  - {drawing: pass_l, ticks: 3, key: true, u: 0.95}
+  - {drawing: up_l, ticks: 1, u: 1.0}

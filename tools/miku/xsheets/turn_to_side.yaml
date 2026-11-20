@@ -1,7 +1,8 @@
-# Front -> 3/4 (facing right; left = mirror), straight into the diagonal walk.
+# Front -> 3/4 (facing right; left = mirror), straight into the diagonal walk. The waist turns
+# with the body; the hem trails a beat (stand_go: hem still swinging out behind).
 clip: turn_to_side
 view: turn
 loop: false
 frames:
   - {drawing: front, ticks: 2, key: true}
-  - {drawing: stand, ticks: 2, key: true}
+  - {drawing: stand_go, ticks: 2, key: true}

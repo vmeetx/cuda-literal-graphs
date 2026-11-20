@@ -41,7 +41,7 @@ def p1():
 
 
 def walk_frames(tired=False):
-    xs = xsheet.load("walk_tired" if tired else "walk_side")
+    xs = xsheet.load("walk_tired_side" if tired else "walk_side")
     period = xs["ticks"]
     out, t = [], 0
     pick = side_body.PASS_ALTS[PASS_PICK]
@@ -66,12 +66,16 @@ def walk_frames(tired=False):
     return xs, out
 
 
-def diagonal_frames():
-    """The cheerful walk in 3/4 view (q_walk), timed by the walk exposure sheet."""
-    xs = xsheet.load("walk")
+def diagonal_frames(name="walk", opt=None):
+    """A 3/4 clip (q_walk), timed by its exposure sheet. Each frame carries its tiredness u;
+    the hem shows the state of the drawing 1 (cheerful) or 2 (tired) drawings earlier."""
+    xs = xsheet.load(name)
+    order = [f["drawing"] for f in xs["frames"]]
     out, t = [], 0
-    for f in xs["frames"]:
-        rows, meta = q_walk.pose(f["drawing"], t, xs["ticks"])
+    for k, f in enumerate(xs["frames"]):
+        u = f.get("u", 0.0)
+        hem = q_walk.hem_for(order, k, 1 if u < 0.5 else 2)
+        rows, meta = q_walk.pose(f["drawing"], t, xs["ticks"], u=u, hem=hem, opt=opt, k=k)
         out.append({"drawing": f["drawing"], "ticks": f["ticks"], "key": f.get("key", False),
                     "grid": rows, "anchors": meta})
         t += f["ticks"]
@@ -85,8 +89,8 @@ def turn_frames(name):
         d = f["drawing"]
         if d == "front":
             rows, meta = p1(), {"view": "front", "facing": "front", "drawing": "front"}
-        elif d == "stand":
-            rows, meta = q_walk.pose("stand")
+        elif d.startswith("stand"):
+            rows, meta = q_walk.pose(d, u=f.get("u", 0.0))
         else:
             rows, meta = side_body.pose_side(d, head=SIDE_FACE, swing=f.get("swing", 0.0))
         out.append({"drawing": d, "ticks": f["ticks"], "key": f.get("key", False),
@@ -182,12 +186,18 @@ def main(outdir=str(ROOT / "findings/miku_v2/gate2")):
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
     built = {}
-    for name, fn in (("walk", diagonal_frames), ("walk_side", lambda: walk_frames(False)),
-                     ("walk_tired", lambda: walk_frames(True)),
+    for name, fn in (("walk", diagonal_frames),
+                     ("walk_tired", lambda: diagonal_frames("walk_tired")),
+                     ("walk_to_tired", lambda: diagonal_frames("walk_to_tired")),
+                     ("walk_from_tired", lambda: diagonal_frames("walk_from_tired")),
                      ("turn_to_side", lambda: turn_frames("turn_to_side")),
                      ("turn_to_front", lambda: turn_frames("turn_to_front")),
                      ("turn_to_side_tired", lambda: turn_frames("turn_to_side_tired")),
-                     ("turn_to_front_tired", lambda: turn_frames("turn_to_front_tired"))):
+                     ("turn_to_front_tired", lambda: turn_frames("turn_to_front_tired")),
+                     ("walk_side", lambda: walk_frames(False)),
+                     ("walk_tired_side", lambda: walk_frames(True)),
+                     ("turn_to_side_tired_side", lambda: turn_frames("turn_to_side_tired_side")),
+                     ("turn_to_front_tired_side", lambda: turn_frames("turn_to_front_tired_side"))):
         xs, frames = fn()
         save_clip(name, xs, frames)
         contact_sheet(name, frames, out / f"contact_{name}.png")
