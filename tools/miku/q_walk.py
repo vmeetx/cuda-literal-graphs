@@ -524,8 +524,8 @@ def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0, ev
     tired thumbnail option; k = drawing index (the dragged leaves scrape). even=True rounds
     the bob and head offsets up to even pixels, for the halved compact tier: every frame then
     halves on the same pixel pairs, so her features don't shimmer. skip = parts to leave out
-    ("leek" with the far arm holding it, "arm" for the near arm, "torso"), for the compact tier,
-    which draws those parts by hand at half size."""
+    ("leek" with the far arm holding it, "arm" for the near arm, "torso", "legs"), for the
+    compact tier, which draws those parts by hand at half size."""
     tired_legs = u >= 0.5
     table = TIRED_DRAW if tired_legs else DRAW
     near, far, ng, fg, bob, sway_, arm = table[drawing]
@@ -562,8 +562,9 @@ def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0, ev
     if dleek == "low":                                        # behind the legs and skirt
         stalk(cv, (46, 47), (33, 63), bob)
         paste(cv, (24, 61, DRAG_LEAVES))
-    leg(cv, far, "far", bob, fg)
-    leg(cv, near, "near", bob, ng)
+    if "legs" not in skip:
+        leg(cv, far, "far", bob, fg)
+        leg(cv, near, "near", bob, ng)
     if drawing in STAND_HEM:
         state, hamp = STAND_HEM[drawing]
         hamp *= 1.0 - 0.5 * u

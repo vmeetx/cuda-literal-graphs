@@ -239,6 +239,65 @@ DRAG_LEAVES = (3, 31, ["  II  ",
                        " I I  "])
 MOUTH = {"cheery": "VS", "half": "SE", "line": "BB"}
 
+# legs at half size, 1 px thigh and sock between navy outlines; index 3 is the hip's outline.
+# She faces right: F reaches forward (right), K trails on the toe, P lifts the foot back under
+# a forward knee. The stride is a pixel wider each way than halving gives, so it reads at 1x.
+LEGS = {
+    "S":   ["   BEB", "   BFB", "   BFB", "   BFB", "   BFB", "   BFFB", "   BBBB"],
+    "F":   ["   BEB", "   BEB", "    BFB", "    BFB", "     BFB", "     BFFB", "     BBBB"],
+    "K":   ["   BEB", "   BEB", "  BFB", "  BFB", " BFB", "BFFB", " BB"],
+    "P":   ["   BEB", "   BEEB", "    BEB", "   BFB", "  BFFB", "  BBBB"],
+    "f2":  ["   BEB", "   BFB", "   BFB", "    BFB", "    BFB", "    BFFB", "    BBBB"],
+    "k2":  ["   BEB", "   BFB", "  BFB", "  BFB", "  BFB", " BFFB", " BBBB"],
+    "k2h": ["   BEB", "   BFB", "  BFB", "  BFB", "  BFB", " BFFB", "  BBB"],
+    "u2":  ["   BEB", "   BFB", "   BFB", "    BFB", "    BFFB", "    BBBB"],
+    "p2":  ["   BEB", "   BFB", "   BFB", "   BFB", "   BFFB", "   BBBB"],
+}
+HIP = {"near": 17, "far": 20}
+# the far leg trailing behind a near leg that reaches forward: the legs cross, so it trails
+# further back (hip outline at index 5) and the two feet stay apart
+FAR_K = ["     BEB", "    BEB", "   BFB", "  BFB", " BFB", "BFFB", " BB"]
+HIP_ROW = 27
+
+
+def put_legs(g, legs, bob):
+    """Far leg then near leg, behind the skirt (they only cover empty space and hair)."""
+    near, far, ng, fg = legs
+    top = HIP_ROW + bob // 2
+    cells = {}
+    for side, shape, grounded in (("far", far, fg), ("near", near, ng)):
+        rows, hip = list(LEGS[shape]), 3
+        if side == "far" and shape == "K":
+            rows, hip = list(FAR_K), 5
+        if grounded:                       # stretch or squash the sock so the sole is on the ground
+            n = BASELINE - top + 1
+            while len(rows) < n:
+                rows.insert(2, rows[2])
+            while len(rows) > n:
+                del rows[2]
+        for j, r in enumerate(rows):
+            for i, c in enumerate(r):
+                if c != " " and top + j <= BASELINE:
+                    if side == "far":
+                        c = {"E": "P", "F": "Y"}.get(c, c)
+                    cells[(HIP[side] - hip + i, top + j)] = c
+    for (x, y), c in cells.items():
+        if 0 <= x < len(g[0]) and g[y][x] in ".ACG":
+            g[y][x] = c
+
+
+def blush(g, face, spots):
+    """The halved blush lands right under the eyes and reads as red eyes: clear it and put a
+    small blush one row lower, out toward each cheek."""
+    (nx, ny), (fx, fy) = spots
+    for y in range(ny, ny + 6):
+        for x in range(12, 27):
+            if 0 <= y < len(g) and g[y][x] == "U":
+                g[y][x] = "E"
+    for x, y in ((nx, ny + 3), (nx + 1, ny + 3), (fx + 2, fy + 3)):
+        if g[y][x] in "EP":
+            g[y][x] = "U"
+
 
 def parts_front(g, drawing):
     x0, y0, rows = FRONT_BODY
@@ -291,21 +350,25 @@ def parts_diagonal(g, meta, arm, k):
         x0, y0, rows = LEEK_UP
         paste_ring(g, x0, y0 + db, rows)
         paste_ring(g, *sh(ARM_UP))
-    m = MOUTH.get(meta["face"], "BB")
-    for i, c in enumerate(m):
+    for i, c in enumerate(MOUTH.get(meta["face"], "BB")):
         g[14 + hy][20 + hx + i] = c
 
 
-def compact(full_rows, eyes=None, meta=None, arm=0, k=0):
+def compact(full_rows, eyes=None, meta=None, arm=0, k=0, legs=None):
     """eyes = (face, [(x, y) of each eye's top-left in compact pixels]) or None. With `meta`,
-    the hand-drawn half-size body parts go on top (front or 3/4)."""
+    the hand-drawn half-size body parts go on top (front or 3/4); legs = (near, far, near
+    grounded, far grounded) shapes for the 3/4 view."""
     g = half(full_rows)
     despeckle(g)
     close_outline(g)
+    if legs:
+        put_legs(g, legs, meta["bob"])
     if eyes:
         face, spots = eyes
         for i, ((x, y), rows) in enumerate(zip(spots, EYES[face])):
             put(g, x + EYE_X0.get(face, [0, 0])[i], y, rows)
+        if meta is not None and meta.get("view") != "front":
+            blush(g, face, spots)
     if meta is not None:
         if meta.get("view") == "front":
             parts_front(g, meta.get("drawing"))
@@ -314,7 +377,7 @@ def compact(full_rows, eyes=None, meta=None, arm=0, k=0):
     return ["".join(r) for r in g]
 
 
-SKIP = ("leek", "arm", "torso")
+SKIP = ("leek", "arm", "torso", "legs")
 
 
 def drawing(d, t=0, period=12, u=0.0, hem=None, k=0):
@@ -329,7 +392,7 @@ def drawing(d, t=0, period=12, u=0.0, hem=None, k=0):
         return compact(rows, eyes_for(meta), meta), meta
     rows, meta = q_walk.pose(d, t, period, u=u, hem=hem, k=k, even=True, skip=SKIP)
     table = q_walk.TIRED_DRAW if u >= 0.5 else q_walk.DRAW
-    return compact(rows, eyes_for(meta), meta, arm=table[d][6], k=k), meta
+    return compact(rows, eyes_for(meta), meta, arm=table[d][6], k=k, legs=table[d][:4]), meta
 
 
 def clip_frames(name):

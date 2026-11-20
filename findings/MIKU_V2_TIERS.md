@@ -63,7 +63,25 @@ Each round, a fresh reviewer scored the compact tier against the approved sprite
 
 The round 4 version scores at least as high as round 3 on both moods, so it is kept as the best version so far.
 
-## 7. Still open (from round 4, not fixed)
+### Rounds 5 and 6: faces and stride
+
+| Round | Change | Cheerful | Tired |
+|---|---|---|---|
+| 5 | Blush moved off the eyes; half-size legs; 'v' smile | 33 | 36 |
+| 6 | As round 5, with the approved 2 px "VS" mouth back | **37** | 34 |
+
+- **Blush.** The halved blush sat right under the eyes and read as red eyes. It is now a 2x1 patch one row lower, moved toward the near cheek, plus 1 px on the far cheek.
+- **Legs.** Halving merged the two 1 px outlines between the legs into one, so the far leg disappeared in some drawings. The compact tier now draws its own half-size legs, the same way it draws the arms, from the same leg shapes and ground contact as the full tier. The stride is a pixel wider each way than halving gave. When the near leg reaches forward, the far trailing leg trails further back so both feet stay visible. The passing foot lifts 2 px.
+- **'v' smile.** It read as an open red mouth, so round 6 went back to the approved "VS" mouth.
+- **Scoring noise.** The tired drawings in rounds 5 and 6 are pixel-identical, yet they scored 36 and then 34. So the critic varies by about ±2 on the same art. Averaged, tired is 35, level with round 4, and cheerful is clearly up (37 against 35). Round 6 is kept.
+
+## 7. Still open (from rounds 4–6, not fixed)
+
+- Tired stride: the shuffle is meant to be small, but contact and pass still look too alike at 1x.
+- The raised sleeve runs into the dark right twintail.
+- The dark shirt sides read as a jacket on dark backgrounds.
+
+Earlier issues, partly addressed above:
 
 1. **Cheerful face.** At 1x the '^' eyes still read as open eyes, and the 2 px mouth reads as a surprised "o". A cleaner 3 px '^' with no dark pixel under it, plus a flat 1 px smile, should fix it.
 2. **Tired face.** The blush sits right under the lids and reads as red eyes. It should move 1 row down and 1 px out. Two cyan stripes on the tired torso read as suspenders instead of one tie.
