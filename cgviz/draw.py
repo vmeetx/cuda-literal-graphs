@@ -181,7 +181,12 @@ def draw_plan(nodes, p, orient):
         start_a = A[i] + maxla[i]
         arrow_a = A[i + 1] - 1
         for key, (t, ges) in assign.items():
-            track_a = start_a + 1 + t if t is not None else start_a
+            if t is None:
+                track_a = start_a
+            elif p.get("late_tracks"):
+                track_a = arrow_a - T + t
+            else:
+                track_a = start_a + 1 + t
             for u, v in ges:
                 cells = []
                 ua = A[i] + (p["size"](u)[0] if u > 0 else maxla[i])  # first cell after u
@@ -292,13 +297,13 @@ def legend(present):
     return row
 
 
-def layout(data, roles=None, width=120, prefer=("LR", "TB"), node_gap=None):
+def layout(data, roles=None, width=120, prefer=("LR", "TB"), node_gap=None, rank_gap=0):
     nodes, edges = gd.load(data, roles)
     cn, ce = gd.collapse(nodes, edges)
     label_nodes(nodes, cn, roles)
     tried = []
     for orient in prefer:
-        p = plan(cn, ce, orient, node_gap)
+        p = plan(cn, ce, orient, node_gap, rank_gap)
         w, h = dims(p, orient)
         tried.append((orient, w, h))
         if w <= width:

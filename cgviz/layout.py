@@ -130,8 +130,9 @@ def _layers(nodes, edges):
     return Ld, seg, chains, depth
 
 
-def plan(nodes, edges, orient, node_gap=None):
-    """Grid geometry in abstract axes: a = along the flow, c = across it."""
+def plan(nodes, edges, orient, node_gap=None, rank_gap=0):
+    """Grid geometry in abstract axes: a = along the flow, c = across it. rank_gap: the
+    least distance between consecutive layers (room for a big sprite between them)."""
     Ld, seg, chains, depth = _layers(nodes, edges)
     node_gap = node_gap if node_gap is not None else (1 if orient == "LR" else 2)
 
@@ -248,11 +249,13 @@ def plan(nodes, edges, orient, node_gap=None):
     A, a = [], 0
     for i in range(len(Ld)):
         A.append(a)
-        a += maxla[i] + (gaps[i][0] + 2 if i < len(gaps) else 0)
+        a += maxla[i] + (max(gaps[i][0] + 2, rank_gap) if i < len(gaps) else 0)
     total_a = a
     total_c = max(C[n] + lc[n] for layer in Ld for n in layer)
+    # with a rank gap the routing tracks sit at the far end of each gap, next to the targets,
+    # so a big sprite walking a track has open space behind it instead of the source box
     return dict(Ld=Ld, seg=seg, chains=chains, C=C, lc=lc, A=A, maxla=maxla, gaps=gaps,
-                size=size, total_a=total_a, total_c=total_c)
+                size=size, total_a=total_a, total_c=total_c, late_tracks=rank_gap > 0)
 
 
 def dims(p, orient):

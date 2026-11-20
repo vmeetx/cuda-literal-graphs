@@ -9,6 +9,10 @@ Rules
   all k have arrived, then merge into one, which walks on into the node.
 - At each node the walker stops (idle bob) and the box is highlighted; the caption names it.
 - At the last node she plays the victory frame.
+- With `turns` (the v2 sprite), she never moves while turning: leaving a node she first turns
+  from the front to her side, and before reversing direction she turns through the front.
+  Stopped walkers are drawn as "idle_1" (the animator turns them to the front), waiting ones
+  as "wait_1" (they stay in profile), turning ones as "turn_side" / "turn_reverse".
 """
 
 from __future__ import annotations
@@ -37,6 +41,8 @@ class Walker:
     facing: int = 1                # +1 right, -1 left
     steps: int = 0                 # cells walked (drives the walk-frame alternation)
     then: str = ""                 # what to do when cells run out: arrive | split | wait
+    turn: str = ""                 # v2: the turn being played (turn_side | turn_reverse)
+    moved: bool = False            # moved during the current frame
 
 
 @dataclass
@@ -102,10 +108,17 @@ def node_route(box, orient):
 
 
 class Walk:
-    def __init__(self, lay, nodes, edges, speed: float = 1.0):
+    def __init__(self, lay, nodes, edges, speed: float = 1.0, turns=None, gap=None):
+        """turns: {"side": ticks, "reverse": ticks} turn lengths at speed 1 (v2 sprite), or
+        None (v1: she turns on the spot). gap: cells between walkers at forks and joins
+        (default: the v1 sprite's width)."""
         self.lay, self.nodes, self.edges = lay, nodes, set(edges)
         self.speed = max(speed, 0.1)
         self.stop_frames = max(2, round(STOP_FRAMES / self.speed))
+        self.turns = ({k: max(1, round(v / self.speed)) for k, v in turns.items()}
+                      if turns else None)
+        self.wait_back = gap or WAIT_BACK
+        self.sprite_gap = gap or SPRITE_GAP
         self.succ, self.pred = {}, {}
         for u, v in sorted(self.edges):
             self.succ.setdefault(u, []).append(v)
@@ -132,7 +145,7 @@ class Walk:
                 i = next((k for k, c in enumerate(cells) if c in others), len(cells))
                 self.shared[(u, v)] = min(i, len(cells) - 1)
                 # wait a sprite-width back from the meeting cell so the walkers stand apart
-                self.wait_at[(u, v)] = max(min(i - WAIT_BACK, i - 1), 0)
+                self.wait_at[(u, v)] = max(min(i - self.wait_back, i - 1), 0)
         self.final = max(n for n in nodes if not self.succ.get(n))
         self.walkers: list[Walker] = []
         self.next_id = 0
@@ -165,12 +178,17 @@ class Walk:
                 w.timer = VICTORY_FRAMES
             return
         w.state, w.cells, w.then = "walk", list(self.route[n][2]), "split"
+        if self.turns:      # turn from the front to the side she is about to walk
+            ahead = next((c[0] for c in w.cells if c[0] != w.pos[0]), w.pos[0])
+            if ahead != w.pos[0]:
+                w.facing = 1 if ahead > w.pos[0] else -1
+            w.state, w.timer, w.turn = "turn", self.turns["side"], "turn_side"
 
     def _split(self, w):
         """At the out-port: one walker per outgoing edge, all leaving together."""
         n = w.node
         kids = []
-        gap = max(1, round(SPRITE_GAP / self.speed))
+        gap = max(1, round(self.sprite_gap / self.speed))
         for i, v in enumerate(self.succ[n]):
             k = w if i == 0 else self._new(w.pos)
             k.facing, k.steps = w.facing, w.steps
@@ -182,7 +200,7 @@ class Walk:
         if len(kids) > 1:
             labels = ", ".join(self.nodes[v]["label"] for v in self.succ[n])
             text = f"{self.nodes[n]['label']} → {labels}  ·  {FORK_NOTE}"
-            self.fork_caption = (max(self.stop_frames * 2, len(kids) * SPRITE_GAP), text)
+            self.fork_caption = (max(self.stop_frames * 2, len(kids) * self.sprite_gap), text)
         return "split" if len(kids) > 1 else ""
 
     def _send(self, w, u, v):
@@ -201,6 +219,7 @@ class Walk:
             w.facing = 1 if nxt[0] > w.pos[0] else -1
         if nxt != w.pos:
             w.steps += 1
+            w.moved = True
         w.pos = nxt
 
     # ------------------------------------------------------------- simulation
@@ -217,6 +236,8 @@ class Walk:
             budget += self.speed
             moves = int(budget)
             budget -= moves
+            for w in self.walkers:
+                w.moved = False
             for w in list(self.walkers):
                 if w.state == "stop":
                     w.timer -= 1
@@ -224,18 +245,26 @@ class Walk:
                         self._leave(w)
                 elif w.state == "victory":
                     w.timer -= 1
-                elif w.state == "hold":
+                elif w.state in ("hold", "turn"):
                     w.timer -= 1
                     if w.timer <= 0:
                         w.state = "walk"
                         continue
                 if w.state == "walk":
                     for _ in range(moves):
+                        if w.cells and self.turns:
+                            dx = w.cells[0][0] - w.pos[0]
+                            if dx and (dx > 0) != (w.facing > 0):    # reversing: turn first
+                                if w.moved:      # the turn starts next frame, on the spot
+                                    break
+                                w.facing = -w.facing
+                                w.state, w.timer, w.turn = "turn", self.turns["reverse"], "turn_reverse"
+                                break
                         if w.cells:
                             self._step(w)
                         if not w.cells:
                             break
-                    if not w.cells:
+                    if w.state == "walk" and not w.cells:
                         if w.then == "split":
                             event = self._split(w) or event
                         elif w.then == "arrive":
@@ -266,6 +295,14 @@ class Walk:
                 self.trace.append((w.id, w.pos))
                 if w.state == "victory":
                     sprite, dy = "victory_1", HOP[frame_no % len(HOP)]
+                elif self.turns and w.moved:       # stepped, then stopped: still a walk frame
+                    sprite, dy = "walk", 0
+                elif self.turns and w.state == "turn":
+                    sprite, dy = w.turn, 0
+                elif self.turns and w.state in ("wait", "hold"):
+                    sprite, dy = "wait_1", 0
+                elif self.turns and w.state == "walk":
+                    sprite, dy = "walk", 0
                 elif w.state in ("stop", "wait", "done", "hold"):
                     sprite, dy = "idle_1", BOB[frame_no % len(BOB)]
                 else:
@@ -285,7 +322,7 @@ class Walk:
             if not hl and not hl_override:   # everyone is on the move: say where they are heading, and from where
                 heading: dict[str, list[str]] = {}
                 for w in sorted(self.walkers, key=lambda x: x.id):
-                    if w.node is not None and w.state in ("walk", "hold", "wait"):
+                    if w.node is not None and w.state in ("walk", "hold", "wait", "turn"):
                         src = heading.setdefault(self.nodes[w.node]["label"], [])
                         if w.edge and self.nodes[w.edge[0]]["label"] not in src:
                             src.append(self.nodes[w.edge[0]]["label"])

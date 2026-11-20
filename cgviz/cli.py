@@ -34,6 +34,9 @@ def build_parser() -> argparse.ArgumentParser:
     anim = argparse.ArgumentParser(add_help=False)
     anim.add_argument("--no-miku", action="store_true", help="static graph only")
     anim.add_argument("--speed", type=float, default=1.0, help="walk/stop speed multiplier")
+    anim.add_argument("--miku-size", choices=("auto", "full", "compact", "small"), default="auto",
+                      help="sprite size (auto: the largest that fits the terminal; small is "
+                           "the 12-cell v1 sprite)")
     anim.add_argument("--no-panel", action="store_true", help="no portrait side panel")
     anim.add_argument("--full-names", action="store_true", help="untruncated kernel names")
     for name, desc in (("diamond", "two branches on two streams, joined"),
@@ -133,11 +136,14 @@ def show_graph(args: argparse.Namespace, data: dict, roles: list[str] | None, ti
                                        + provenance.KERNEL_NOTE + "\n" + lst + "\n",
                                        encoding="utf-8")
     if not getattr(args, "no_miku", True) and show.can_animate():
-        alay, _, acn, ace = draw.layout(data, roles, width, prefer=(lay.orient,),
-                                        node_gap=show.NODE_GAP[lay.orient])
-        frames = walk.Walk(alay, acn, ace, speed=args.speed).frames()
+        from cgviz import miku_walk
+
+        size = shutil.get_terminal_size((width, args.rows))
+        alay, acn, frames, sprites = miku_walk.walk(
+            data, roles, width, lay.orient, size.columns, size.lines,
+            speed=args.speed, size=getattr(args, "miku_size", "auto"))
         show.play(alay, acn, frames, title=f"cgviz {title} · captured graph",
-                  panel=not args.no_panel)
+                  panel=not args.no_panel, sprites=sprites)
     show.print_static(static)
     return static
 

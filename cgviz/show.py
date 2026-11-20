@@ -100,19 +100,38 @@ SIDE = (-(SPRITE_W // 2) + 1, -(SPRITE_H - 2))  # on a vertical line: centred, f
 ABOVE = (-(SPRITE_W // 2) + 1, -(SPRITE_H - 1))  # on a horizontal line: centred, just above
 
 
+class V1Sprites:
+    """The small v1 sprite (12x10 cells) with its portrait panel: the fallback when the
+    terminal is too small for the v2 Miku."""
+
+    w, h, side, above, portrait = SPRITE_W, SPRITE_H, SIDE, ABOVE, True
+
+    def is_victory(self, sprite):
+        return sprite == "victory_1"
+
+    def victory_at(self, box):
+        x0, y0, x1, _ = box
+        return (x0 + x1) // 2 - SPRITE_W // 2 + 1, y0 - SPRITE_H
+
+    def cells(self, sprite, facing=1, dy=0):
+        return sprite_cells(sprite, facing, dy)
+
+
 def sprite_rect(pos, orient, off=None):
     """Top-left cell of the walker sprite for a walker standing at `pos`."""
     dx, dy = off or (SIDE if orient == "TB" else ABOVE)
     return pos[0] + dx, pos[1] + dy
 
 
-def sprite_offsets(frames, orient):
+def sprite_offsets(frames, orient, side=SIDE, above=ABOVE, places=None, ease=(2, 1)):
     """Per frame, per walker: where the sprite sits relative to the walker's cell.
 
     Walking along a vertical line she stands beside it; along a horizontal line, above it.
-    The offset eases between the two (2 columns / 1 row per frame) so corners never jump.
+    The offset eases between the two (`ease` = columns, rows per frame) so corners never jump;
+    `places` maps cells on a box's border to an offset that keeps a big sprite off the box
+    (beside its right side, under its bottom).
     A walker that just split off inherits the offset of the walker it split from."""
-    start = SIDE if orient == "TB" else ABOVE
+    start = side if orient == "TB" else above
     cur, target, last = {}, {}, {}
     out = []
     for f in frames:
@@ -123,11 +142,13 @@ def sprite_offsets(frames, orient):
                 cur[wid] = by_pos.get(pos, start)
                 target[wid] = cur[wid]
             p = last.get(wid)
-            if p is not None and p != pos:
-                target[wid] = SIDE if p[0] == pos[0] else ABOVE
+            if places and pos in places:                  # on a box's border: off the box
+                target[wid] = places[pos]
+            elif p is not None and p != pos:
+                target[wid] = side if p[0] == pos[0] else above
             (cx, cy), (tx, ty) = cur[wid], target[wid]
-            cx += max(-2, min(2, tx - cx))
-            cy += max(-1, min(1, ty - cy))
+            cx += max(-ease[0], min(ease[0], tx - cx))
+            cy += max(-ease[1], min(ease[1], ty - cy))
             cur[wid] = offs[wid] = (cx, cy)
             last[wid] = pos
         for wid in [w for w in cur if w not in offs]:
@@ -142,22 +163,29 @@ def sprite_offsets(frames, orient):
 class Scene:
     """Everything needed to compose frames for one terminal size."""
 
-    def __init__(self, lay, nodes, frames, cols, rows, panel=True, title=""):
+    def __init__(self, lay, nodes, frames, cols, rows, panel=True, title="", sprites=None):
         self.lay, self.nodes, self.frames, self.title = lay, nodes, frames, title
         self.cols, self.rows = cols, rows
+        self.sp = sp = sprites or V1Sprites()
         # canvas = graph plus room for sprites wherever they go
-        self.offs = sprite_offsets(frames, lay.orient)
+        places = {}
+        if lay.orient == "TB" and hasattr(sp, "stand"):
+            for x0, y0, x1, y1 in lay.boxes.values():
+                places.update({(x1, y): sp.stand for y in range(y0 + 1, y1)})
+                places.update({(x, y1): sp.under for x in range(x0, x1 + 1)})
+        self.offs = sprite_offsets(frames, lay.orient, sp.side, sp.above, places,
+                                   ease=(max(2, sp.w // 6), max(1, sp.h // 6)))
         xs, ys = [0, lay.width - 1], [0, lay.height - 1]
         for f, offs in zip(frames, self.offs):
             for wid, pos, sprite, *_r in f.walkers:
                 sx, sy = self._at(pos, sprite, offs[wid])
-                xs += [sx, sx + SPRITE_W - 1]
-                ys += [sy, sy + SPRITE_H - 1]
+                xs += [sx, sx + sp.w - 1]
+                ys += [sy, sy + sp.h - 1]
         ys.append(max(ys) + BOTTOM_MARGIN)       # room below the last box for the ending
         self.ox, self.oy = -min(xs), -min(ys)
         self.cw, self.ch = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
         self.vh = rows - 2                       # caption + status lines
-        self.panel = (panel and rows - 2 >= PORTRAIT_H
+        self.panel = (panel and sp.portrait and rows - 2 >= PORTRAIT_H
                       and cols - PORTRAIT_W - PANEL_GAP >= min(self.cw, MIN_COLS))
         self.vw = cols - PORTRAIT_W - PANEL_GAP if self.panel else cols
         self.border = {}
@@ -174,10 +202,11 @@ class Scene:
     def _at(self, pos, sprite, off):
         """Graph-coordinate top-left of a sprite. For the victory she stands centred on top
         of the final box (feet just above its top border) so the box never hides her."""
-        if sprite == "victory_1":
-            for x0, y0, x1, y1 in self.lay.boxes.values():
+        if self.sp.is_victory(sprite):
+            for box in self.lay.boxes.values():
+                x0, y0, x1, y1 = box
                 if x0 <= pos[0] <= x1 and y0 <= pos[1] <= y1:
-                    return (x0 + x1) // 2 - SPRITE_W // 2 + 1, y0 - SPRITE_H
+                    return self.sp.victory_at(box)
         return sprite_rect(pos, self.lay.orient, off)
 
     # canvas coordinates of each walker's sprite
@@ -185,8 +214,8 @@ class Scene:
         out = []
         for wid, pos, sprite, *_r in self.frames[i].walkers:
             sx, sy = self._at(pos, sprite, self.offs[i][wid])
-            out.append((sx + self.ox, sy + self.oy, sx + self.ox + SPRITE_W - 1,
-                        sy + self.oy + SPRITE_H - 1))
+            out.append((sx + self.ox, sy + self.oy, sx + self.ox + self.sp.w - 1,
+                        sy + self.oy + self.sp.h - 1))
         return out
 
     def _axis(self, cam, lo, hi, view, total, first):
@@ -248,7 +277,7 @@ class Scene:
                     grid[r][c] = (ch, fg, bg, bold)
         for (wid, pos, sprite, facing, dy), (sx, sy, _, _) in sorted(
                 zip(f.walkers, self.rects(i)), key=lambda t: t[0][0]):
-            for j, row in enumerate(sprite_cells(sprite, facing, dy)):
+            for j, row in enumerate(self.sp.cells(sprite, facing, dy)):
                 for k, sc in enumerate(row):
                     if sc is None:
                         continue                       # transparent: keep the graph cell
@@ -387,7 +416,7 @@ def can_animate(out=None) -> bool:
     return size.columns >= MIN_COLS and size.lines >= MIN_ROWS
 
 
-def play(lay, nodes, frames, title="", panel=True, out=None, fps=12, hold=1.5):
+def play(lay, nodes, frames, title="", panel=True, out=None, fps=12, hold=1.5, sprites=None):
     """Run the animation in the alternate screen. Returns True if it ran to the end."""
     out = out or sys.stdout
     finished = False
@@ -401,7 +430,8 @@ def play(lay, nodes, frames, title="", panel=True, out=None, fps=12, hold=1.5):
                 now = shutil.get_terminal_size((80, 24))
                 if now != size:
                     size = now
-                    scene = Scene(lay, nodes, frames, size.columns, size.lines, panel, title)
+                    scene = Scene(lay, nodes, frames, size.columns, size.lines, panel, title,
+                                  sprites)
                     prev = None
                     out.write("\x1b[0m\x1b[2J")
                 grid = scene.compose(i)
