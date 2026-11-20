@@ -117,3 +117,86 @@ def enable_vt(out=None) -> bool:
     except Exception:
         _VT = False
     return _VT
+
+
+def raw_input(inp=None):
+    """Stop keypresses from echoing over the animation. Returns a function that restores the
+    old mode and throws away anything typed meanwhile, so it doesn't land in the shell.
+
+    POSIX: termios, echo and line mode off. Windows: the console input mode, echo and line
+    input off (processed input stays on, so Ctrl-C still interrupts). A no-op when stdin is
+    not a terminal.
+    """
+    inp = inp or sys.stdin
+    try:
+        if not inp.isatty():
+            return lambda: None
+        fd = inp.fileno()
+    except (AttributeError, OSError, ValueError):
+        return lambda: None
+    if sys.platform == "win32":
+        return _raw_windows(fd)
+    try:
+        import termios
+
+        saved = termios.tcgetattr(fd)
+        new = termios.tcgetattr(fd)
+        new[3] &= ~(termios.ECHO | termios.ICANON)
+        termios.tcsetattr(fd, termios.TCSANOW, new)
+    except Exception:
+        return lambda: None
+
+    def restore():
+        try:
+            termios.tcsetattr(fd, termios.TCSAFLUSH, saved)
+        except Exception:
+            pass
+    return restore
+
+
+ENABLE_LINE_INPUT, ENABLE_ECHO_INPUT = 0x2, 0x4
+
+
+def _raw_windows(fd):
+    try:
+        import ctypes
+        import msvcrt
+        from ctypes import wintypes
+
+        k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        k32.GetConsoleMode.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+        k32.SetConsoleMode.argtypes = (wintypes.HANDLE, wintypes.DWORD)
+        k32.FlushConsoleInputBuffer.argtypes = (wintypes.HANDLE,)
+        h = msvcrt.get_osfhandle(fd)
+        mode = wintypes.DWORD()
+        if not k32.GetConsoleMode(h, ctypes.byref(mode)):
+            return lambda: None
+        saved = mode.value
+        if not k32.SetConsoleMode(h, saved & ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT)):
+            return lambda: None
+    except Exception:
+        return lambda: None
+
+    def restore():
+        try:
+            k32.FlushConsoleInputBuffer(h)
+            k32.SetConsoleMode(h, saved)
+        except Exception:
+            pass
+    return restore
+
+
+def utf8_stdout(out=None):
+    """Write UTF-8 when stdout is a pipe or file whose encoding can't hold the box and block
+    characters (Windows PowerShell 5.1 pipes default to the ANSI code page). A real console
+    is left alone: Python already writes it as Unicode."""
+    out = out or sys.stdout
+    enc = (getattr(out, "encoding", None) or "").lower().replace("-", "")
+    if enc in ("utf8", "utf8sig"):
+        return
+    try:
+        if out.isatty() and sys.platform == "win32":
+            return
+        out.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, OSError, ValueError):
+        pass

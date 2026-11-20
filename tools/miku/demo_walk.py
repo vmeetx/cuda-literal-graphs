@@ -1,9 +1,12 @@
 """Dev demo: Miku v2 walks across one box top and back, with turns (facing rules from
 cgviz.miku_motion, rendering with cgviz.halfblock and cgviz.show's diff redraw).
 
-    python tools/miku/demo_walk.py [--tired | --rest] [--cols 150] [--rows 44]
+    python tools/miku/demo_walk.py [--tired | --rest] [--cols C --rows R] [--speed 1.5]
+
+The size defaults to the terminal's own; --speed scales the tick rate (12 ticks/s at 1).
 """
 import argparse
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -67,11 +70,15 @@ def main():
     a = argparse.ArgumentParser()
     a.add_argument("--tired", action="store_true")
     a.add_argument("--rest", action="store_true")
-    a.add_argument("--cols", type=int, default=150)
-    a.add_argument("--rows", type=int, default=44)
+    a.add_argument("--cols", type=int)
+    a.add_argument("--rows", type=int)
+    a.add_argument("--speed", type=float, default=1.0, help="animation speed multiplier")
     a.add_argument("--tier", choices=list(miku_assets.TIERS),
                    help="sprite size (default: the largest that fits the terminal)")
     o = a.parse_args()
+    size = shutil.get_terminal_size((150, 44))
+    o.cols, o.rows = o.cols or size.columns, o.rows or size.lines
+    rate = 12 * max(0.1, o.speed)
     tier = o.tier or miku_assets.pick_tier(o.cols, o.rows)
     if tier is None:
         sys.exit(f"terminal {o.cols}x{o.rows} is too small for Miku "
@@ -96,6 +103,7 @@ def main():
     term.enable_vt(out)
     depth = term.color_depth()
     out.write("\x1b[?1049h\x1b[?25l\x1b[2J")
+    restore_input = term.raw_input()
     prev = None
     t0 = time.monotonic()
     try:
@@ -104,13 +112,14 @@ def main():
             out.write(term.SYNC_BEGIN + show.diff(prev, g, depth) + term.SYNC_END)
             out.flush()
             prev = g
-            d = t0 + (k + 1) / 12 - time.monotonic()
+            d = t0 + (k + 1) / rate - time.monotonic()
             if d > 0:
                 time.sleep(d)
         time.sleep(0.8)
     finally:
         out.write(term.SYNC_END + "\x1b[0m\x1b[?25h\x1b[?1049l")
         out.flush()
+        restore_input()
 
 
 if __name__ == "__main__":

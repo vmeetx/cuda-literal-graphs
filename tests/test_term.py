@@ -1,6 +1,7 @@
 """Terminal capabilities: colour depth guess, 256-colour mapping, and the diff renderer in 256."""
 
 import re
+import sys
 
 import pytest
 
@@ -55,3 +56,55 @@ def test_diff_in_256_uses_only_indexed_colour():
 def test_enable_vt_off_windows(monkeypatch):
     monkeypatch.setattr(term.sys, "platform", "linux")
     assert term.enable_vt() is True
+
+
+def test_raw_input_noop_when_not_a_tty():
+    import io as _io
+    restore = term.raw_input(_io.StringIO())
+    restore()   # nothing to restore, nothing raised
+
+
+def test_raw_input_windows_turns_off_echo_and_line_mode(monkeypatch):
+    """On Windows the console input mode loses echo and line input but keeps processed input
+    (Ctrl-C); restoring flushes typed keys and puts the old mode back."""
+    calls = []
+
+    class K32:
+        """Stand-in kernel32; plain functions, so ctypes argtypes can be set on them."""
+        def __init__(self):
+            self.mode = 0x1F7                        # conhost default: echo, line, processed...
+
+            def get(h, ref):
+                ref._obj.value = self.mode
+                return 1
+
+            def set_(h, m):
+                calls.append(m)
+                self.mode = m
+                return 1
+
+            def flush(h):
+                calls.append("flush")
+                return 1
+            self.GetConsoleMode, self.SetConsoleMode, self.FlushConsoleInputBuffer = get, set_, flush
+
+    k = K32()
+    import ctypes
+    import types
+    monkeypatch.setattr(ctypes, "WinDLL", lambda *a, **kw: k, raising=False)
+    monkeypatch.setitem(sys.modules, "msvcrt", types.SimpleNamespace(get_osfhandle=lambda fd: 7))
+    restore = term._raw_windows(0)
+    assert calls[0] == 0x1F7 & ~0x6 and calls[0] & 0x1
+    restore()
+    assert calls[1:] == ["flush", 0x1F7]
+
+
+def test_utf8_stdout_on_a_cp1252_pipe(monkeypatch):
+    import io as _io
+    buf = _io.BytesIO()
+    out = _io.TextIOWrapper(buf, encoding="cp1252")
+    monkeypatch.setattr(term.sys, "platform", "win32")
+    term.utf8_stdout(out)
+    out.write("▀█┌")
+    out.flush()
+    assert buf.getvalue() == "▀█┌".encode("utf-8")

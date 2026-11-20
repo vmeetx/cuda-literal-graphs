@@ -352,19 +352,10 @@ class _Terminal:
     """Alternate screen, hidden cursor, no echo; restored on exit, Ctrl-C and SIGTERM."""
 
     def __init__(self, out):
-        self.out, self.saved, self.old_term = out, None, None
+        self.out, self.restore_input, self.old_term = out, None, None
 
     def __enter__(self):
-        try:
-            import termios
-
-            fd = sys.stdin.fileno()
-            self.saved = termios.tcgetattr(fd)
-            new = termios.tcgetattr(fd)
-            new[3] &= ~(termios.ECHO | termios.ICANON)
-            termios.tcsetattr(fd, termios.TCSANOW, new)
-        except Exception:
-            self.saved = None
+        self.restore_input = term.raw_input()
         self.old_term = signal.getsignal(signal.SIGTERM)
         signal.signal(signal.SIGTERM, _raise_interrupt)
         self.out.write("\x1b[?1049h\x1b[?25l\x1b[?7l\x1b[2J")
@@ -378,10 +369,8 @@ class _Terminal:
             self.out.write(term.SYNC_END + "\x1b[0m\x1b[?7h\x1b[?25h\x1b[?1049l")
             self.out.flush()
         finally:
-            if self.saved is not None:
-                import termios
-
-                termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, self.saved)
+            if self.restore_input is not None:
+                self.restore_input()
             signal.signal(signal.SIGTERM, self.old_term or signal.SIG_DFL)
         return False
 

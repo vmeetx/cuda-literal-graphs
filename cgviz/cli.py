@@ -11,7 +11,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
-from cgviz import io, show
+from cgviz import io, show, term
 
 DEFAULT_COLS = 160
 DEFAULT_ROWS = 48
@@ -214,6 +214,7 @@ def _origin(exc: BaseException) -> str:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    term.utf8_stdout()
     try:
         COMMANDS[args.command](args)
     except NotImplementedError as e:
