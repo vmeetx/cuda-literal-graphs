@@ -29,7 +29,10 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--fit", action="store_true", help="use the terminal size")
     common.add_argument("--out", type=Path, default=None, help="output base directory")
 
-    p = argparse.ArgumentParser(prog="cgviz", description="Draw captured CUDA graphs as graphs.")
+    p = argparse.ArgumentParser(
+        prog="cgviz", description="Draw captured CUDA graphs as graphs.",
+        epilog="Hatsune Miku © Crypton Future Media, INC. www.piapro.net "
+               "(fan art, non-commercial; see README).")
     sub = p.add_subparsers(dest="command", required=True)
     anim = argparse.ArgumentParser(add_help=False)
     anim.add_argument("--no-miku", action="store_true", help="static graph only")
