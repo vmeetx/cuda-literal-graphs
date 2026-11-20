@@ -519,11 +519,13 @@ def leg(cv, shape, side, bob, grounded):
     paste(cv, (HIP_X[side] - hip - 1, top, rows), recolor=FAR_LEG if side == "far" else None)
 
 
-def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0, even=False):
+def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0, even=False, skip=()):
     """One drawing. u = tiredness (0 cheerful, 1 tired); hem = the (lagged) hem state; opt =
     tired thumbnail option; k = drawing index (the dragged leaves scrape). even=True rounds
     the bob and head offsets up to even pixels, for the halved compact tier: every frame then
-    halves on the same pixel pairs, so her features don't shimmer."""
+    halves on the same pixel pairs, so her features don't shimmer. skip = parts to leave out
+    ("leek" with the far arm holding it, "arm" for the near arm, "torso"), for the compact tier,
+    which draws those parts by hand at half size."""
     tired_legs = u >= 0.5
     table = TIRED_DRAW if tired_legs else DRAW
     near, far, ng, fg, bob, sway_, arm = table[drawing]
@@ -540,6 +542,7 @@ def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0, ev
         bob, hdx = up2(bob), up2(hdx)
         hdy = head_total - bob
     leek = leek_stage(u)
+    dleek = None if "leek" in skip else leek
     face = face_stage(u)
     cv = {}
     left, right = tail_cells()
@@ -550,13 +553,13 @@ def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0, ev
     cv.update({(x + hdx, y + bob + hdy): c for (x, y), c in far_tail.items()})
     near_cells = sway(left, (-0.5 - 2.2 * phase) * tamp, 3 + round(u))
     cv.update({(x + hdx, y + bob + hdy): c for (x, y), c in near_cells.items()})
-    if leek == "drag":   # far hand reaching back past the near tail, the leek trailing on the ground
+    if dleek == "drag":   # far hand reaching back past the near tail, the leek trailing on the ground
         paste(cv, (o["leaves"] + (k % 2), 61, DRAG_LEAVES_2 if k % 2 else DRAG_LEAVES))   # scraping
         stalk(cv, o["stalk"][0], o["stalk"][1], bob)
         paste(cv, (o["hand"][0], o["hand"][1], FAR_DRAG_HAND), dy=bob)
-    if u < 0.5:
+    if u < 0.5 and "arm" not in skip:
         paste(cv, BACK_ARM, dy=bob, rows_shift=lambda j: (arm if j >= 5 else 0))
-    if leek == "low":                                         # behind the legs and skirt
+    if dleek == "low":                                        # behind the legs and skirt
         stalk(cv, (46, 47), (33, 63), bob)
         paste(cv, (24, 61, DRAG_LEAVES))
     leg(cv, far, "far", bob, fg)
@@ -567,12 +570,13 @@ def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0, ev
     else:
         state, hamp = (hem or PHASE_STATE[drawing.split("_")[0]]), 1.0 - 0.5 * u
     hem_line = skirt(cv, state, hamp, _round(sway_ * (1.0 - u)), bob)
-    paste(cv, TORSO_SLUMP if u >= 0.6 else TORSO, dy=bob)
-    if u >= 0.5:
+    if "torso" not in skip:
+        paste(cv, TORSO_SLUMP if u >= 0.6 else TORSO, dy=bob)
+    if u >= 0.5 and "arm" not in skip:
         paste(cv, LIMP_ARM, dy=bob)
     head = turned_head(face)
     cv.update({(x + hdx, y + bob + hdy): c for (x, y), c in head.items()})
-    if leek == "up":
+    if dleek == "up":
         leek_dx = -arm if not drawing.startswith("stand") else 0   # leaves trail the arm by a pixel
         for y in range(LEEK_STALK_Y0, LEEK_STALK_Y1 + 1):
             pale = y >= 20
@@ -581,12 +585,12 @@ def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0, ev
         paste(cv, LEEK_TOP, dy=bob, rows_shift=lambda j: (leek_dx if j < 3 else 0))
         paste(cv, LEEK_ROOT, dy=bob)
         paste(cv, LEEK_ARM, dy=bob)
-    elif leek == "mid":
+    elif dleek == "mid":
         stalk(cv, (57, 37), (55, 40), bob)                    # root end, below the fist
         stalk(cv, (58, 33), (66, 23), bob)                    # tipping forward
         paste(cv, (62, 18, LEEK_TOP[2][:5]), dy=bob)
         paste(cv, MID_ARM, dy=bob)
-    elif leek == "low":
+    elif dleek == "low":
         paste(cv, LOW_ARM, dy=bob)
     grid = [["."] * W for _ in range(H)]
     for (x, y), c in cv.items():

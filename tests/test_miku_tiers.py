@@ -42,7 +42,7 @@ def test_compact_head_does_not_shimmer():
     for f in miku_assets.load("walk", "compact")["frames"]:
         g = f["grid"]
         dy = (f["anchors"]["bob"] + f["anchors"]["head_dy"]) // 2
-        tops.add(tuple(r[8:28] for r in g[2 + dy:7 + dy]))
+        tops.add(tuple(r[8:26] for r in g[2 + dy:7 + dy]))   # head only, not the raised leek
     assert len(tops) == 1
 
 

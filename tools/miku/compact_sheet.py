@@ -35,13 +35,7 @@ def main(out, u="0"):
 
     tiles = []
     for t, n in enumerate(NAMES):
-        if n == "front":
-            rows, meta = q_walk.p1(), {"view": "front", "drawing": n}
-        elif n == "front_tired":
-            rows, meta = q_walk.tired_front(), {"view": "front", "drawing": n}
-        else:
-            rows, meta = q_walk.pose(n, t, 12, u=u, even=True)
-        tiles.append((n, halve.compact(rows, halve.eyes_for(meta))))
+        tiles.append((n, halve.drawing(n, t, 12, u=u)[0]))
     s = 6
     w, h = halve.W * s, halve.H * s
     W = len(tiles) * (w + 10) + 10
