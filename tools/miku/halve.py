@@ -87,12 +87,13 @@ def despeckle(g):
 EYES = {
     "open":       [["BBB", "FCG", "CAC"], ["BBB", "FCG", "CAC"]],      # front view
     "line_front": [["...", "BBB", "..."], ["...", "BBB", "..."]],
-    "cheery":     [["..B..", ".B.B."], [".B.", "B.B"]],
+    "cheery":     [["A..B..", "A.B.B."], [".B.", "B.B"]],    # col 0: the halved lash -> hair
     "half":       [["BBBBB", ".FCF."], ["BBB", "FCF"]],
     "line":       [[".....", "BBBBB"], ["...", "BBB"]],
 }
 FRONT_EYES = [(13, 10), (21, 10)]
 DIAG_EYES = [(14, 10), (22, 10)]         # with the head at its rest position
+EYE_X0 = {"cheery": [-1, 0]}             # patches that start a column left of the eye
 
 
 def put(g, x0, y0, rows):
@@ -143,11 +144,11 @@ def paste_ring(g, x0, y0, rows, behind=False):
 
 FRONT_BODY = (11, 16, [          # front view, rows 16-33: jacket, tie, sleeves, skirt, legs
     "     BPPPB     ",
-    "    BNLCLNB    ",
-    "   BNLLALLNB   ",
-    "  BDBNLALNBDB  ",
-    "  BDBNLALNBDB  ",
-    "  BDBKNANKBDB  ",
+    "    BLLCLLB    ",
+    "   BLLLALLLB   ",
+    "  BDBLLALLBDB  ",
+    "  BDBLLALLBDB  ",
+    "  BDBKLALKBDB  ",
     " BDDBBDADBBDDB ",
     " BAABDDDDDBAAB ",
     "BEEBDKDDDKDBEEB",
@@ -161,11 +162,11 @@ FRONT_BODY = (11, 16, [          # front view, rows 16-33: jacket, tie, sleeves,
     "   BFFB BFFB   ",
     "   BBBB BBBB   ",
 ])
-FRONT_LEEK = (1, 23, ["BIB        ",       # blades splay unevenly; white root at her hand
-                      " BIIBBBBBBB",
-                      "BXIIIbbbLLL",
-                      "IIXBBBBBBBB",
-                      "B  I       "])
+FRONT_LEEK = (3, 23, ["BIB      ",         # blades splay unevenly; white root at her hand;
+                      " BIIBBBBB",         # no wider than the walking silhouette
+                      "BXIIbbLLL",
+                      "IIXBBBBBB",
+                      "B  I     "])
 FRONT_MOUTH = {"open": (17, 14, "SVS"), "line_front": (17, 14, "EBB")}
 
 # flat shirt: one light grey, one shade column on the far side, a 1 px tie with its knot
@@ -186,17 +187,17 @@ NEAR_ARM = (11, 18, ["    DD",            # rows 2-3 (forearm) shift with the sw
                      "  AA  ",
                      " EE   "])
 LIMP_ARM = (14, 18, ["DD", "DD", "DD", "DD", "AA", "EE"])
-LEEK_UP = (27, 1, ["I    I",
+LEEK_UP = (27, 1, ["I    I",           # leaves joined to the stalk as a V
                    " I  I ",
-                   "  IX  ",
-                   "  IX  ",
-                   "  IX  ",
-                   "  IX  ",
-                   "  IX  ",
-                   "  IX  ",
-                   "  IX  ",
-                   "  bb  ",
-                   "      ",
+                   "  XI  ",            # dark side and lit edge
+                   "  XI  ",
+                   "  XI  ",
+                   "  XI  ",
+                   "  XI  ",
+                   "  Ib  ",            # paling toward the white end at her fist
+                   "  Ib  ",
+                   "  bL  ",
+                   "  bL  ",
                    "      ",
                    "   L  "])
 ARM_UP = (23, 11, ["      EE",
@@ -261,7 +262,7 @@ def parts_diagonal(g, meta, arm, k):
     u, leek = meta["u"], meta["leek"]
     sh = lambda part, dy=db: (part[0], part[1] + dy, part[2])        # noqa: E731
     if leek == "low":
-        paste_ring(g, *sh(LEEK_LOW), behind=True)
+        paste_ring(g, *sh(LEEK_LOW))
     if leek == "drag":
         x0, y0, rows = DRAG_LEAVES
         paste_ring(g, x0, y0, rows)
@@ -288,8 +289,7 @@ def parts_diagonal(g, meta, arm, k):
         paste_ring(g, *sh(ARM_MID))
     elif leek == "up":
         x0, y0, rows = LEEK_UP
-        paste_ring(g, x0 - arm, y0 + db, rows[:2])               # the leaves trail the arm
-        paste_ring(g, x0, y0 + 2 + db, rows[2:])
+        paste_ring(g, x0, y0 + db, rows)
         paste_ring(g, *sh(ARM_UP))
     m = MOUTH.get(meta["face"], "BB")
     for i, c in enumerate(m):
@@ -304,8 +304,8 @@ def compact(full_rows, eyes=None, meta=None, arm=0, k=0):
     close_outline(g)
     if eyes:
         face, spots = eyes
-        for (x, y), rows in zip(spots, EYES[face]):
-            put(g, x, y, rows)
+        for i, ((x, y), rows) in enumerate(zip(spots, EYES[face])):
+            put(g, x + EYE_X0.get(face, [0, 0])[i], y, rows)
     if meta is not None:
         if meta.get("view") == "front":
             parts_front(g, meta.get("drawing"))
