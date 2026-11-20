@@ -87,7 +87,7 @@ def despeckle(g):
 EYES = {
     "open":       [["BBB", "FCG", "CAC"], ["BBB", "FCG", "CAC"]],      # front view
     "line_front": [["...", "BBB", "..."], ["...", "BBB", "..."]],
-    "cheery":     [[".BBB.", "B...B"], [".B.", "B.B"]],
+    "cheery":     [["..B..", ".B.B."], [".B.", "B.B"]],
     "half":       [["BBBBB", ".FCF."], ["BBB", "FCF"]],
     "line":       [[".....", "BBBBB"], ["...", "BBB"]],
 }
@@ -136,7 +136,8 @@ def paste_ring(g, x0, y0, rows, behind=False):
             if q in cells or not ok(*q) or q[1] > BASELINE:     # nothing below the soles
                 continue
             cur = g[q[1]][q[0]]
-            if cur not in "BZ" and (not behind or cur == "."):
+            # never outline over skin: the chin and neck stay light
+            if cur not in "BZEPU" and (not behind or cur == "."):
                 g[q[1]][q[0]] = "B"
 
 
@@ -167,24 +168,25 @@ FRONT_LEEK = (1, 23, ["BIB        ",       # blades splay unevenly; white root a
                       "B  I       "])
 FRONT_MOUTH = {"open": (17, 14, "SVS"), "line_front": (17, 14, "EBB")}
 
+# flat shirt: one light grey, one shade column on the far side, a 1 px tie with its knot
 TORSO = (15, 16, ["   BPPB  ",
-                  "  BNLCLB ",
-                  " BNLLALB ",
-                  " BNLLALNB",
-                  " BKNLALNB",
-                  "  BKNANB "])
+                  " BBLLCLBB",
+                  " BLLLALKB",
+                  " BLLLALKB",
+                  " BLLLALKB",
+                  " BLLLALKB"])
 TORSO_SLUMP = (15, 16, ["   BPPB  ",
-                        "   BLCLB ",
-                        " BNLLALB ",
-                        " BNLLALNB",
-                        " BKNLALNB",
-                        "  BKNANB "])
+                        "  BBLCLBB",
+                        " BLLLALKB",
+                        " BLLLALKB",
+                        " BLLLALKB",
+                        " BLLLALKB"])
 NEAR_ARM = (11, 18, ["    DD",            # rows 2-3 (forearm) shift with the swing
                      "   DD ",
                      "  AA  ",
                      " EE   "])
 LIMP_ARM = (14, 18, ["DD", "DD", "DD", "DD", "AA", "EE"])
-LEEK_UP = (27, 0, ["I    I",
+LEEK_UP = (27, 1, ["I    I",
                    " I  I ",
                    "  IX  ",
                    "  IX  ",
@@ -193,7 +195,6 @@ LEEK_UP = (27, 0, ["I    I",
                    "  IX  ",
                    "  IX  ",
                    "  IX  ",
-                   "  bb  ",
                    "  bb  ",
                    "      ",
                    "      ",
@@ -265,7 +266,12 @@ def parts_diagonal(g, meta, arm, k):
         x0, y0, rows = DRAG_LEAVES
         paste_ring(g, x0, y0, rows)
         paste_ring(g, *sh(DRAG_STALK))
-    paste_ring(g, *sh(TORSO_SLUMP if u >= 0.6 else TORSO))
+    # the torso never covers the face: rows down to the chin (which drops with the head) are
+    # left to the head, so a lowered head keeps a light chin instead of a dark bib
+    x0, y0, rows = TORSO_SLUMP if u >= 0.6 else TORSO
+    chin = 15 + hy
+    keep = max(0, chin - (y0 + db) + 1)
+    paste_ring(g, x0, y0 + db + keep, rows[keep:])
     if u < 0.5:
         x0, y0, rows = NEAR_ARM
         rows = rows[:2] + [(" " + r[:-1]) if arm > 0 else (r[1:] + " ") if arm < 0 else r
