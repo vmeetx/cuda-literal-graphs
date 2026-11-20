@@ -82,10 +82,8 @@ def face_edits(src, face="cheery"):
         g[25][x] = "U"
     for x in (43, 44):
         g[25][x] = "U"
-    for x, c in zip(range(36, 39), "BBB"):        # small open mouth: out of breath
-        g[29][x] = c
-    for x, c in zip(range(36, 39), "BVB"):
-        g[30][x] = c
+    g[30][36] = "B"                               # flat, tired mouth
+    g[30][37] = "B"
     return ["".join(r) for r in g]
 
 
@@ -238,6 +236,9 @@ def skirt(cv, state="rest", amp=1.0, sway=0, bob=0):
         v = span[i]                                   # pleat tips always hang (>= 1 px);
         return max(1, _round(v * amp)) if v > 0 else _round(v * amp)   # only the swing scales
 
+    def yt_hi(x):                                     # trim steps, never breaks: a dipped
+        return min(HEM_BASE + off(x - 1), HEM_BASE + off(x + 1), HEM_BASE + off(x))   # column joins up
+
     layer = {}
     for y, (x0, row) in WAIST.items():
         for i, ch in enumerate(row):
@@ -258,7 +259,7 @@ def skirt(cv, state="rest", amp=1.0, sway=0, bob=0):
                     sv = max(0.0, min(1.0, (y - 48) / max(yt - 49, 1)))
                     if round(top + (end2 - top) * sv ** 1.6) == x:
                         ch = "K"
-            elif y == yt:
+            elif y == yt or (yt_hi(x) <= y < yt):
                 ch = "C" if x >= R - 2 else "A"
             else:
                 continue
@@ -315,6 +316,14 @@ LEGS = {
         "...BEEEB...", "...BEEEB...", "...BEEEB...", "..BFFFB....", "..BFFFB....",
         "..BFFFB....", "..BFFFB....", "..BFFFB....", ".BFFFB.....", ".BFFFB.....",
         ".BFFFB.....", ".BFFFFB....", ".BFFFFB....", ".BBBBBB...."]),
+    "k2h": (3, [  # tired: trailing foot peeling off, heel up 1 px
+        "...BEEEB...", "...BEEEB...", "...BEEEB...", "..BFFFB....", "..BFFFB....",
+        "..BFFFB....", "..BFFFB....", ".BFFFB.....", ".BFFFB.....", ".BFFFB.....",
+        ".BFFFB.....", "BFFFFB.....", ".BFFFB.....", "..BBB......"]),
+    "u2": (2, [  # tired: swinging foot just ahead, 1 px off the ground
+        "..BEEEB....", "..BEEEB....", "..BEEEB....", "...BFFFB...", "...BFFFB...",
+        "...BFFFB...", "...BFFFB...", "...BFFFB...", "...BFFFB...", "...BFFFB...",
+        "...BFFFFB..", "...BFFFFB..", "...BBBBBB..", "..........."]),
     "p2": (2, [  # tired passing: the foot barely lifts (1 px), knee hardly forward
         "..BEEEB....", "..BEEEB....", "..BEEEB....", "..BFFFB....", "...BFFFB...",
         "...BFFFB...", "...BFFFB...", "..BFFFB....", "..BFFFB....", "..BFFFB....",
@@ -343,14 +352,14 @@ DRAW = {
     "stand_settle": ("S", "S", True, True, 0, 0, 0),
 }
 TIRED_DRAW = {   # short shuffling steps, bob 0-1 px, no arm swing
-    "contact_r": ("k2", "f2", True, True, 1, 0, 0),
-    "down_r":    ("k2", "S", True, True, 1, 0, 0),
+    "contact_r": ("k2", "f2", True, True, 0, 0, 0),
+    "down_r":    ("k2h", "S", True, True, 1, 0, 0),
     "pass_r":    ("p2", "S", False, True, 0, 0, 0),
-    "up_r":      ("f2", "S", True, True, 0, 0, 0),
-    "contact_l": ("f2", "k2", True, True, 1, 0, 0),
-    "down_l":    ("S", "k2", True, True, 1, 0, 0),
+    "up_r":      ("u2", "S", False, True, 0, 0, 0),
+    "contact_l": ("f2", "k2", True, True, 0, 0, 0),
+    "down_l":    ("S", "k2h", True, True, 1, 0, 0),
     "pass_l":    ("S", "p2", True, False, 0, 0, 0),
-    "up_l":      ("S", "f2", True, True, 0, 0, 0),
+    "up_l":      ("S", "u2", True, False, 0, 0, 0),
     "stand":     ("S", "S", True, True, 0, 0, 0),
     "stand_go":  ("S", "S", True, True, 0, 0, 0),
     "stand_settle": ("S", "S", True, True, 0, 0, 0),
@@ -372,8 +381,9 @@ TORSO_SLUMP = (32, 33, [   # rounded shoulders: collar lower, back bulging out b
     "...BNNLLLLBKKB..",
     "...BKNNNNNBKKB..",
 ])
-LIMP_ARM = (29, 35, [      # near arm hanging limp in front: skin, sleeve tapering to the cuff, small hand
-    "...BBB",
+LIMP_ARM = (29, 35, [      # near arm hanging limp in front: skin, sleeve tapering to the cuff, small
+    "...BBB",                 # hand hanging below the waist, clear of the dark skirt
+    "..BEEB",
     "..BEEB",
     "..BEEB",
     "..BEEB",
@@ -383,9 +393,10 @@ LIMP_ARM = (29, 35, [      # near arm hanging limp in front: skin, sleeve taperi
     ".BDDMB",
     "..BDMB",
     "..BAAB",
-    "..BEEB",
-    "..BEPB",
-    "...BB.",
+    ".BEEEB",
+    ".BEEPB",
+    "..BEB.",
+    "...B..",
 ])
 FAR_DRAG_HAND = [          # far arm reaching back behind her: shadow sleeve, teal cuff, shaded hand
     "...BMMB",
@@ -419,18 +430,27 @@ LOW_ARM = (43, 35, [       # lowering, 2: arm hanging at her far side, leek poin
     "..BEEB",
     "...BB.",
 ])
-DRAG_LEAVES = [            # leaves splayed on the ground behind her (as in the side-view tired walk)
-    "......BB.....BB.",
-    ".....BIIB...BIIB",
-    "..BBBXIIIBBBXIB.",
-    ".BIIIXXIIIIIIB..",
-    "BIIIIIIXXIIIIIBB",
-    ".BBXIIIIIIIIIIbb",
-    "...BBBBBBBBBBBBB",
+DRAG_LEAVES = [            # three blades scraping along the ground behind her, gaps between
+    "..B.....B.......",
+    ".BIB...BIB......",
+    "..BIB..BIB...BB.",
+    "...BIB.BXIB.BIIB",
+    "BB..BIBBXIBBIXB.",
+    "BIBBBIIBXIIIXBbb",
+    ".BBBBBBBBBBBBBBB",
+]
+DRAG_LEAVES_2 = [          # scrape state 2: blades bent back a pixel
+    ".B......B.......",
+    "BIB....BIB......",
+    ".BIB...BIB....B.",
+    "..BIB..BXIB..BIB",
+    "B..BIB.BXIBBBIB.",
+    "BIBBBIIBXIIIXBbb",
+    ".BBBBBBBBBBBBBBB",
 ]
 TIRED_OPTS = {   # thumbnails for the tired contact key: head droop, leek drag geometry
-    "A": dict(hdx=1, hdy=2, hand=(23, 44), stalk=((26, 50), (19, 64)), leaves=4,
-              note="slouch: head 1 forward, 2 down; long drag, leaves well behind"),
+    "A": dict(hdx=1, hdy=3, hand=(23, 44), stalk=((26, 50), (19, 64)), leaves=4,
+              note="slouch: head 1 forward, 3 down; long drag, leaves well behind"),
     "B": dict(hdx=2, hdy=3, hand=(25, 46), stalk=((28, 52), (23, 64)), leaves=8,
               note="heavy droop: head 2 forward, 3 down; short drag, leaves close"),
     "C": dict(hdx=1, hdy=1, hand=(21, 42), stalk=((24, 48), (15, 64)), leaves=0,
@@ -457,7 +477,7 @@ def leek_stage(u):
 
 
 def face_stage(u):
-    return "cheery" if u < 0.3 else "half" if u < 0.65 else "line"
+    return "cheery" if u < 0.25 else "half" if u < 0.7 else "line"
 
 
 def fit(rows, n):
@@ -501,6 +521,8 @@ def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0):
     o = TIRED_OPTS[opt or TIRED_PICK]
     hdx = round(o["hdx"] * min(1.0, u / 0.8))
     hdy = round(o["hdy"] * min(1.0, u / 0.8))
+    if tired_legs and drawing.startswith("down"):
+        hdy -= 1                                              # dip in the body only, not the head
     leek = leek_stage(u)
     face = face_stage(u)
     cv = {}
@@ -513,7 +535,7 @@ def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0):
     near_cells = sway(left, (-0.5 - 2.2 * phase) * tamp, 3 + round(2 * u))
     cv.update({(x + hdx, y + bob + hdy): c for (x, y), c in near_cells.items()})
     if leek == "drag":   # far hand reaching back past the near tail, the leek trailing on the ground
-        paste(cv, (o["leaves"] + (k % 2), 61, DRAG_LEAVES))   # scraping: a pixel of jitter
+        paste(cv, (o["leaves"] + (k % 2), 61, DRAG_LEAVES_2 if k % 2 else DRAG_LEAVES))   # scraping
         stalk(cv, o["stalk"][0], o["stalk"][1], bob)
         paste(cv, (o["hand"][0], o["hand"][1], FAR_DRAG_HAND), dy=bob)
     if u < 0.5:
