@@ -463,7 +463,7 @@ TIRED_OPTS = {   # thumbnails for the tired contact key: head droop, leek drag g
     "C": dict(hdx=1, hdy=1, hand=(21, 42), stalk=((24, 48), (15, 64)), leaves=0,
               note="trudge: head 1 forward, 1 down; arm stretched back, leaves far behind"),
 }
-TIRED_PICK = "A"
+TIRED_PICK = "B"
 
 
 def stalk(cv, a, b, bob, behind=False):

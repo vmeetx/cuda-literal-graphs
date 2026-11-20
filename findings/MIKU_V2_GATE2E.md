@@ -62,17 +62,17 @@ GIF: [cheerful walk with the new skirt](miku_v2/gate2e/walk_cheerful.gif).
 
 | Option | Head | Leek drag |
 |---|---|---|
-| A (pick) | 1 px forward, 3 px down | long, leaves well behind her |
-| B | 2 px forward, 3 px down | short, leaves close |
+| A | 1 px forward, 3 px down | long, leaves well behind her |
+| B (your pick) | 2 px forward, 3 px down | short, leaves close |
 | C | 1 px forward, 1 px down | arm stretched back, leaves far behind |
 
-Every critic round preferred A. B and C stay in the code and swap in with one setting.
+The critics preferred A. You picked B after comparing all three walking ([side-by-side GIF](miku_v2/gate2e/tired_ABC_compare.gif)), so the tired walk, its transitions and the recordings below now use B. A and C stay in the code and swap in with one setting. The critic scores below were measured on A.
 
 ![tired thumbnails](miku_v2/gate2e/tired_thumbnails.png)
 
 **Design:**
 - **Face:** closed line eyes and a flat mouth.
-- **Posture:** rounded shoulders, with the head 1 px forward and 3 px down.
+- **Posture:** rounded shoulders, with the head 2 px forward and 3 px down.
 - **Gait:** a short shuffle:
   - the leading foot is 3 px ahead and the trailing foot is flat behind
   - the heel peels up on the down drawings
