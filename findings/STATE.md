@@ -26,6 +26,14 @@ The user wants the two approved designs as the options: **compact** (37x36 px) a
 - `compact_decode_120x40.gif`
 - `full_decode_160x50.gif`
 
+Both finished cleanly, with no garbled characters. They are 9.5 MB and 29 MB and are not committed; the full one is too big for git. Stills: `findings/size_options/*_stills.png`.
+
+What they show:
+- The approved art draws correctly at both sizes.
+- At both sizes she fills the screen: only a few boxes are visible at a time, and the camera follows her.
+- At forks, the sibling Mikus overlap each other.
+- Box labels show through her body.
+
 Show those first, then ask:
 1. Should compact replace the tiny sprite as the default?
 2. Is the mini tier still wanted?
