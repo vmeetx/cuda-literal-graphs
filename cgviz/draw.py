@@ -67,7 +67,7 @@ def label_nodes(nodes, cn, roles):
         nd = cn[r]
         if len(nd["members"]) > 1:
             ops = {nodes[m]["op"] for m in nd["members"]}
-            fam = "norm" if "norm" in ops else "silu" if "silu" in ops else "ew"
+            fam = next((w for w in ("norm", "silu", "gelu") if w in ops), "ew")
             lab = f"{fam} x{len(nd['members'])}"
         elif nd["kind"] == "mem":
             lab = "memset" if "memset" in nd["full"].lower() else "memcpy"
@@ -112,15 +112,18 @@ def op_hint(s):
     m = re.search(r"CUDAFunctor(?:OnSelf)?_([a-z0-9]+)", s)
     if m:
         return m.group(1)
-    m = re.search(r"([a-z0-9]+(?:_[a-z0-9]+)*?)_kernel(?:_cuda|_impl)", s)
+    m = re.search(r"([A-Z][a-z]+)CUDAKernelImpl", s)
     if m:
+        return m.group(1).lower()
+    m = re.search(r"([a-z0-9]+(?:_[a-z0-9]+)*?)_kernel(?:_cuda|_impl)", s)
+    if m and m.group(1) != "gpu":
         return m.group(1)
     m = re.search(r"launch_([a-z0-9]+(?:_[a-z0-9]+)*?)_scalar", s)
     if m:
         return m.group(1)
     for m in re.finditer(r"::([A-Za-z0-9]+)(?:Functor|Ops)[<:]", s):
         if m.group(1) not in ("Binary", "AUnary", "Unary"):
-            return m.group(1)
+            return m.group(1).lower()
     m = re.search(r"internal::([A-Za-z]+)Functor<", s)
     return m.group(1).lower() if m else ""
 
@@ -297,18 +300,135 @@ def legend(present):
     return row
 
 
-def layout(data, roles=None, width=120, prefer=("LR", "TB"), node_gap=None, rank_gap=0):
+WRAP_TOP = 2      # rows above the columns: the track carrying an edge into the next column
+WRAP_GUTTER = 4   # columns between wrapped columns
+
+
+def _cuts(cn, ce):
+    """Layer boundaries where the graph can be cut into columns: one node above, one node
+    below, and the single edge between them is the only edge crossing the boundary."""
+    from cgviz.layout import layers_of
+
+    L, depth = layers_of(cn, ce)
+    out = {}
+    for i in range(len(L) - 1):
+        if len(L[i]) == 1 and len(L[i + 1]) == 1:
+            cross = [(u, v) for u, v in ce if depth[u] <= i < depth[v]]
+            if cross == [(L[i][0], L[i + 1][0])]:
+                out[i] = cross[0]
+    return L, out
+
+
+def _connect(lay, cells):
+    for a, b in zip(cells, cells[1:]):
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        lay.mask[a] = lay.mask.get(a, 0) | {(1, 0): E, (-1, 0): W, (0, 1): S, (0, -1): N}[(dx, dy)]
+        lay.mask[b] = lay.mask.get(b, 0) | {(1, 0): W, (-1, 0): E, (0, 1): N, (0, -1): S}[(dx, dy)]
+
+
+def wrap(cn, ce, node_gap, rank_gap, max_h):
+    """Top-to-bottom layout folded into side-by-side columns no taller than max_h rows
+    (where the graph has places to cut), like newspaper columns. The edge from the bottom of
+    one column runs right along the row under it, up the gutter, along the top track and down
+    into the first box of the next column. Returns None when the graph has no cut points."""
+    from cgviz.layout import _line_cells
+
+    L, cuts = _cuts(cn, ce)
+    if not cuts:
+        return None
+
+    def band_plan(lo, hi):
+        ids = {n for layer in L[lo:hi + 1] for n in layer}
+        sub = {n: cn[n] for n in ids}
+        return plan(sub, {(u, v) for u, v in ce if u in ids and v in ids}, "TB", node_gap,
+                    rank_gap), sub
+
+    bands, lo = [], 0
+    while lo < len(L):
+        hi = len(L) - 1
+        if dims(band_plan(lo, hi)[0], "TB")[1] > max_h:
+            ok = [i for i in sorted(cuts) if i >= lo and
+                  dims(band_plan(lo, i)[0], "TB")[1] <= max_h]
+            later = [i for i in sorted(cuts) if i >= lo]
+            hi = ok[-1] if ok else (later[0] if later else hi)
+        bands.append((lo, hi))
+        lo = hi + 1
+    if len(bands) == 1:
+        return None
+    drawn = []
+    for lo, hi in bands:
+        p, sub = band_plan(lo, hi)
+        drawn.append(draw_plan(sub, p, "TB"))
+    W = sum(b.width for b in drawn) + WRAP_GUTTER * (len(drawn) - 1)
+    H = WRAP_TOP + max(b.height for b in drawn) + 1
+    lay = Layout("TB", W, H)
+    x = 0
+    for b in drawn:
+        for (cx, cy), m in b.mask.items():
+            lay.mask[(cx + x, cy + WRAP_TOP)] = m
+        for (cx, cy), c in b.cells.items():
+            lay.cells[(cx + x, cy + WRAP_TOP)] = c
+        for n, (x0, y0, x1, y1) in b.boxes.items():
+            lay.boxes[n] = (x0 + x, y0 + WRAP_TOP, x1 + x, y1 + WRAP_TOP)
+        for u, v, cells in b.paths:
+            lay.paths.append((u, v, [(cx + x, cy + WRAP_TOP) for cx, cy in cells]))
+        x += b.width + WRAP_GUTTER
+    # the edges between columns
+    x = 0
+    for k, b in enumerate(drawn[:-1]):
+        u, v = cuts[bands[k][1]]
+        ux0, _, ux1, uy1 = lay.boxes[u]
+        vx0, vy0, vx1, _ = lay.boxes[v]
+        pu, pv, gx = (ux0 + ux1) // 2, (vx0 + vx1) // 2, x + b.width + WRAP_GUTTER // 2 - 1
+        x += b.width + WRAP_GUTTER
+        corners = [(pu, uy1 + 1), (gx, uy1 + 1), (gx, 0), (pv, 0), (pv, vy0 - 1)]
+        cells = [corners[0]]
+        for a, c in zip(corners, corners[1:]):
+            cells += _line_cells(a, c)[1:]
+        _connect(lay, cells)
+        lay.mask[cells[0]] |= N                       # joined to the source box's border
+        lay.paths.append((u, v, cells))
+        st, col = style_of(cn[u])
+        lay.cells[(pu, uy1)] = (BOX[st][7], col, False)
+        for xy in cells:
+            lay.cells[xy] = (LINE[lay.mask[xy]], COL["edge"], False)
+        lay.cells[cells[-1]] = (ARROW["TB"], COL["arrow"], False)
+    lay.columns = len(drawn)
+    return lay
+
+
+def layout(data, roles=None, width=120, prefer=("LR", "TB"), node_gap=None, rank_gap=0,
+           height=None):
+    """Lay the graph out. node_gap may be a number or {orient: number}. With `height`, the
+    first orientation that fits width x height wins; if none does, the top-to-bottom layout
+    is folded into columns (see `wrap`) so the whole graph stays in view."""
     nodes, edges = gd.load(data, roles)
     cn, ce = gd.collapse(nodes, edges)
     label_nodes(nodes, cn, roles)
+
+    def gap(o):
+        return node_gap.get(o) if isinstance(node_gap, dict) else node_gap
+
     tried = []
     for orient in prefer:
-        p = plan(cn, ce, orient, node_gap, rank_gap)
+        p = plan(cn, ce, orient, gap(orient), rank_gap)
         w, h = dims(p, orient)
         tried.append((orient, w, h))
-        if w <= width:
+        if w <= width and (height is None or h <= height):
             break
+    else:
+        if height is not None:
+            lay = wrap(cn, ce, gap("TB"), rank_gap, height)
+            if lay is not None:
+                return _finish(lay, nodes, cn, ce, tried, width)
+        if not prefer:                    # asked for columns, but the graph can't be folded
+            orient = "TB"
+            p = plan(cn, ce, orient, gap(orient), rank_gap)
     lay = draw_plan(cn, p, orient)
+    return _finish(lay, nodes, cn, ce, tried, width)
+
+
+def _finish(lay, nodes, cn, ce, tried, width):
     stream_tags(cn, ce, lay)
     present = {("gemm" if style_of(nd)[0] == "heavy" else nd["kind"]) for nd in cn.values()}
     forks = any(len(v) > 1 for v in gd.succ(ce).values())

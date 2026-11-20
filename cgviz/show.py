@@ -117,6 +117,49 @@ class V1Sprites:
         return sprite_cells(sprite, facing, dy)
 
 
+class TinySprites:
+    """The tiny sprite (9x10 px, about one graph box): the default, so the whole graph fits
+    the terminal. 2 px of headroom for the hop; her feet are the bottom cell."""
+
+    portrait = False
+    TOP, BOTTOM = 2, 0          # headroom for the hop; the bob only goes up
+    margin = 0                  # no extra rows below the graph: the victory is on a box
+
+    def __init__(self):
+        from cgviz.sprites import TINY
+
+        self.frames = TINY
+        self.w = len(TINY["idle_1"][0])
+        self.h = (self.TOP + len(TINY["idle_1"]) + self.BOTTOM + 1) // 2
+        self.side = (-(self.w // 2), -(self.h - 1))    # on a vertical line: centred on it
+        self.above = (-(self.w // 2), -self.h)         # on a horizontal line: just above it
+        self.stand = (1, -(self.h - 1))                # at a stop: just right of the box
+        self._cache = {}
+
+    def is_victory(self, sprite):
+        return sprite == "victory_1"
+
+    def victory_at(self, box):
+        x0, y0, x1, _ = box
+        return (x0 + x1) // 2 - self.w // 2, y0 - self.h
+
+    def cells(self, sprite, facing=1, dy=0):
+        dy = max(-self.TOP, min(self.BOTTOM, dy))
+        key = (sprite, facing, dy)
+        if key not in self._cache:
+            fr = self.frames[sprite]
+            w = len(fr[0])
+            rows = ["." * w] * self.TOP + list(fr) + ["." * w] * self.BOTTOM
+            if dy < 0:
+                rows = rows[-dy:] + ["." * w] * -dy
+            elif dy > 0:
+                rows = ["." * w] * dy + rows[:-dy]
+            if facing < 0:
+                rows = [r[::-1] for r in rows]
+            self._cache[key] = halfblock.cells(rows, PALETTE)
+        return self._cache[key]
+
+
 def sprite_rect(pos, orient, off=None):
     """Top-left cell of the walker sprite for a walker standing at `pos`."""
     dx, dy = off or (SIDE if orient == "TB" else ABOVE)
@@ -169,10 +212,12 @@ class Scene:
         self.sp = sp = sprites or V1Sprites()
         # canvas = graph plus room for sprites wherever they go
         places = {}
-        if lay.orient == "TB" and hasattr(sp, "stand"):
+        if lay.orient == "TB":
             for x0, y0, x1, y1 in lay.boxes.values():
-                places.update({(x1, y): sp.stand for y in range(y0 + 1, y1)})
-                places.update({(x, y1): sp.under for x in range(x0, x1 + 1)})
+                if getattr(sp, "stand", None):
+                    places.update({(x1, y): sp.stand for y in range(y0 + 1, y1)})
+                if getattr(sp, "under", None):
+                    places.update({(x, y1): sp.under for x in range(x0, x1 + 1)})
         self.offs = sprite_offsets(frames, lay.orient, sp.side, sp.above, places,
                                    ease=(max(2, sp.w // 6), max(1, sp.h // 6)))
         xs, ys = [0, lay.width - 1], [0, lay.height - 1]
@@ -181,7 +226,7 @@ class Scene:
                 sx, sy = self._at(pos, sprite, offs[wid])
                 xs += [sx, sx + sp.w - 1]
                 ys += [sy, sy + sp.h - 1]
-        ys.append(max(ys) + BOTTOM_MARGIN)       # room below the last box for the ending
+        ys.append(max(ys) + getattr(sp, "margin", BOTTOM_MARGIN))  # room for the ending
         self.ox, self.oy = -min(xs), -min(ys)
         self.cw, self.ch = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
         self.vh = rows - 2                       # caption + status lines

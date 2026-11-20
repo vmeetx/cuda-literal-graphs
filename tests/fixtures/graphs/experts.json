@@ -1,0 +1,379 @@
+{
+ "exec_graph_id": 2,
+ "nodes": [
+  {
+   "index": 0,
+   "node_type": "kernel",
+   "tools_id": 8589934592,
+   "graph_id": 2,
+   "node_id": 0,
+   "kernel_name": "_ZN7cutlass7Kernel2I66cutlass_80_wmma_tensorop_f16_s161616gemm_f16_32x32_128x2_nn_align2EEvNT_6ParamsE",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [],
+   "dependents": [
+    1
+   ],
+   "demangled": "void cutlass::Kernel2<cutlass_80_wmma_tensorop_f16_s161616gemm_f16_32x32_128x2_nn_align2>(cutlass_80_wmma_tensorop_f16_s161616gemm_f16_32x32_128x2_nn_align2::Params)"
+  },
+  {
+   "index": 1,
+   "node_type": "kernel",
+   "tools_id": 8589934593,
+   "graph_id": 2,
+   "node_id": 1,
+   "kernel_name": "_ZN43_GLOBAL__N__f71e7945_10_SoftMax_cu_9f978f6320softmax_warp_forwardIN3c104HalfES2_fLi2ELb0ELb0ELi32EEEvPT0_PKT_iiiPKbib",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    0
+   ],
+   "dependents": [
+    2,
+    6,
+    10,
+    14,
+    18
+   ],
+   "demangled": "void (anonymous namespace)::softmax_warp_forward<c10::Half, c10::Half, float, 2, false, false, 32>(c10::Half*, c10::Half const*, int, int, int, bool const*, int, bool)"
+  },
+  {
+   "index": 2,
+   "node_type": "kernel",
+   "tools_id": 8589934594,
+   "graph_id": 2,
+   "node_id": 2,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_128x64_ldg8_f2f_stages_32x6_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    1
+   ],
+   "dependents": [
+    3
+   ]
+  },
+  {
+   "index": 3,
+   "node_type": "kernel",
+   "tools_id": 8589934595,
+   "graph_id": 2,
+   "node_id": 3,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZZZNS0_18GeluCUDAKernelImplERNS_18TensorIteratorBaseENS0_8GeluTypeEENKUlvE0_clEvENKUlvE1_clEvEUlN3c104HalfEE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    2
+   ],
+   "dependents": [
+    4
+   ],
+   "demangled": "void at::native::vectorized_elementwise_kernel<4, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>, false>(int, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>)"
+  },
+  {
+   "index": 4,
+   "node_type": "kernel",
+   "tools_id": 8589934596,
+   "graph_id": 2,
+   "node_id": 4,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_64x64_sliced1x2_ldg8_f2f_stages_64x6_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    3
+   ],
+   "dependents": [
+    5
+   ]
+  },
+  {
+   "index": 5,
+   "node_type": "kernel",
+   "tools_id": 8589934597,
+   "graph_id": 2,
+   "node_id": 5,
+   "kernel_name": "_ZN2at6native18elementwise_kernelILi128ELi4EZNS0_22gpu_kernel_impl_nocastINS0_13BinaryFunctorIN3c104HalfES5_S5_NS0_15binary_internal10MulFunctorIfEEEEEEvRNS_18TensorIteratorBaseERKT_EUliE_EEviT1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    4
+   ],
+   "dependents": [
+    18
+   ],
+   "demangled": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1})"
+  },
+  {
+   "index": 6,
+   "node_type": "kernel",
+   "tools_id": 8589934598,
+   "graph_id": 2,
+   "node_id": 6,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_128x64_ldg8_f2f_stages_32x6_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    1
+   ],
+   "dependents": [
+    7
+   ]
+  },
+  {
+   "index": 7,
+   "node_type": "kernel",
+   "tools_id": 8589934599,
+   "graph_id": 2,
+   "node_id": 7,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZZZNS0_18GeluCUDAKernelImplERNS_18TensorIteratorBaseENS0_8GeluTypeEENKUlvE0_clEvENKUlvE1_clEvEUlN3c104HalfEE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    6
+   ],
+   "dependents": [
+    8
+   ],
+   "demangled": "void at::native::vectorized_elementwise_kernel<4, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>, false>(int, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>)"
+  },
+  {
+   "index": 8,
+   "node_type": "kernel",
+   "tools_id": 8589934600,
+   "graph_id": 2,
+   "node_id": 8,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_64x64_sliced1x2_ldg8_f2f_stages_64x6_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    7
+   ],
+   "dependents": [
+    9
+   ]
+  },
+  {
+   "index": 9,
+   "node_type": "kernel",
+   "tools_id": 8589934601,
+   "graph_id": 2,
+   "node_id": 9,
+   "kernel_name": "_ZN2at6native18elementwise_kernelILi128ELi4EZNS0_22gpu_kernel_impl_nocastINS0_13BinaryFunctorIN3c104HalfES5_S5_NS0_15binary_internal10MulFunctorIfEEEEEEvRNS_18TensorIteratorBaseERKT_EUliE_EEviT1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    8
+   ],
+   "dependents": [
+    18
+   ],
+   "demangled": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1})"
+  },
+  {
+   "index": 10,
+   "node_type": "kernel",
+   "tools_id": 8589934602,
+   "graph_id": 2,
+   "node_id": 10,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_128x64_ldg8_f2f_stages_32x6_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    1
+   ],
+   "dependents": [
+    11
+   ]
+  },
+  {
+   "index": 11,
+   "node_type": "kernel",
+   "tools_id": 8589934603,
+   "graph_id": 2,
+   "node_id": 11,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZZZNS0_18GeluCUDAKernelImplERNS_18TensorIteratorBaseENS0_8GeluTypeEENKUlvE0_clEvENKUlvE1_clEvEUlN3c104HalfEE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    10
+   ],
+   "dependents": [
+    12
+   ],
+   "demangled": "void at::native::vectorized_elementwise_kernel<4, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>, false>(int, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>)"
+  },
+  {
+   "index": 12,
+   "node_type": "kernel",
+   "tools_id": 8589934604,
+   "graph_id": 2,
+   "node_id": 12,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_64x64_sliced1x2_ldg8_f2f_stages_64x6_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    11
+   ],
+   "dependents": [
+    13
+   ]
+  },
+  {
+   "index": 13,
+   "node_type": "kernel",
+   "tools_id": 8589934605,
+   "graph_id": 2,
+   "node_id": 13,
+   "kernel_name": "_ZN2at6native18elementwise_kernelILi128ELi4EZNS0_22gpu_kernel_impl_nocastINS0_13BinaryFunctorIN3c104HalfES5_S5_NS0_15binary_internal10MulFunctorIfEEEEEEvRNS_18TensorIteratorBaseERKT_EUliE_EEviT1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    12
+   ],
+   "dependents": [
+    18
+   ],
+   "demangled": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1})"
+  },
+  {
+   "index": 14,
+   "node_type": "kernel",
+   "tools_id": 8589934606,
+   "graph_id": 2,
+   "node_id": 14,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_128x64_ldg8_f2f_stages_32x6_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    1
+   ],
+   "dependents": [
+    15
+   ]
+  },
+  {
+   "index": 15,
+   "node_type": "kernel",
+   "tools_id": 8589934607,
+   "graph_id": 2,
+   "node_id": 15,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZZZNS0_18GeluCUDAKernelImplERNS_18TensorIteratorBaseENS0_8GeluTypeEENKUlvE0_clEvENKUlvE1_clEvEUlN3c104HalfEE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    14
+   ],
+   "dependents": [
+    16
+   ],
+   "demangled": "void at::native::vectorized_elementwise_kernel<4, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>, false>(int, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>)"
+  },
+  {
+   "index": 16,
+   "node_type": "kernel",
+   "tools_id": 8589934608,
+   "graph_id": 2,
+   "node_id": 16,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_64x64_sliced1x2_ldg8_f2f_stages_64x6_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    15
+   ],
+   "dependents": [
+    17
+   ]
+  },
+  {
+   "index": 17,
+   "node_type": "kernel",
+   "tools_id": 8589934609,
+   "graph_id": 2,
+   "node_id": 17,
+   "kernel_name": "_ZN2at6native18elementwise_kernelILi128ELi4EZNS0_22gpu_kernel_impl_nocastINS0_13BinaryFunctorIN3c104HalfES5_S5_NS0_15binary_internal10MulFunctorIfEEEEEEvRNS_18TensorIteratorBaseERKT_EUliE_EEviT1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    16
+   ],
+   "dependents": [
+    18
+   ],
+   "demangled": "void at::native::elementwise_kernel<128, 4, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1}>(int, at::native::gpu_kernel_impl_nocast<at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > >(at::TensorIteratorBase&, at::native::BinaryFunctor<c10::Half, c10::Half, c10::Half, at::native::binary_internal::MulFunctor<float> > const&)::{lambda(int)#1})"
+  },
+  {
+   "index": 18,
+   "node_type": "kernel",
+   "tools_id": 8589934610,
+   "graph_id": 2,
+   "node_id": 18,
+   "kernel_name": "_ZN2at6native40_GLOBAL__N__f1f992fe_8_Shape_cu_49f7391c30CatArrayBatchedCopy_vectorizedINS1_10OpaqueTypeILj2EEEjLi1ELi128ELi1ELi16ELi8EEEvPcNS1_25CatArrInputTensorMetadataIT_T0_XT2_EXT3_EEENS1_16TensorSizeStrideIS8_Lj4EEEiS8_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    1,
+    5,
+    9,
+    13,
+    17
+   ],
+   "dependents": [
+    19
+   ],
+   "demangled": "void at::native::(anonymous namespace)::CatArrayBatchedCopy_vectorized<at::native::(anonymous namespace)::OpaqueType<2u>, unsigned int, 1, 128, 1, 16, 8>(char*, at::native::(anonymous namespace)::CatArrInputTensorMetadata<at::native::(anonymous namespace)::OpaqueType<2u>, unsigned int, 128, 1>, at::native::(anonymous namespace)::TensorSizeStride<unsigned int, 4u>, int, unsigned int)"
+  },
+  {
+   "index": 19,
+   "node_type": "kernel",
+   "tools_id": 8589934611,
+   "graph_id": 2,
+   "node_id": 19,
+   "kernel_name": "_ZN2at6native13reduce_kernelILi128ELi4ENS0_8ReduceOpIN3c104HalfENS0_14func_wrapper_tIS4_ZNS0_11sum_functorIS4_fS4_EclERNS_14TensorIteratorEEUlffE_EEjS4_Li4ELi8EEEEEvT1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    18
+   ],
+   "dependents": [
+    20
+   ],
+   "demangled": "void at::native::reduce_kernel<128, 4, at::native::ReduceOp<c10::Half, at::native::func_wrapper_t<c10::Half, at::native::sum_functor<c10::Half, float, c10::Half>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, c10::Half, 4, 8> >(at::native::ReduceOp<c10::Half, at::native::func_wrapper_t<c10::Half, at::native::sum_functor<c10::Half, float, c10::Half>::operator()(at::TensorIterator&)::{lambda(float, float)#1}>, unsigned int, c10::Half, 4, 8>)"
+  },
+  {
+   "index": 20,
+   "node_type": "kernel",
+   "tools_id": 8589934612,
+   "graph_id": 2,
+   "node_id": 20,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4ENS0_15CUDAFunctor_addIN3c104HalfEEESt5arrayIPcLm3EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    19
+   ],
+   "dependents": [],
+   "demangled": "void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctor_add<c10::Half>, std::array<char*, 3ul>, false>(int, at::native::CUDAFunctor_add<c10::Half>, std::array<char*, 3ul>)"
+  }
+ ]
+}

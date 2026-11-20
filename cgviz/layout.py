@@ -112,6 +112,17 @@ def cut(s, width):
 # ---------------------------------------------------------------- layout
 
 
+def _line_cells(a, b):
+    """Cells from a to b inclusive, along one axis."""
+    (x0, y0), (x1, y1) = a, b
+    dx, dy = (x1 > x0) - (x1 < x0), (y1 > y0) - (y1 < y0)
+    out, x, y = [(x0, y0)], x0, y0
+    while (x, y) != (x1, y1):
+        x, y = x + dx, y + dy
+        out.append((x, y))
+    return out
+
+
 class Layout:
     """Holds the drawn grid plus the geometry the invariant tests check."""
 

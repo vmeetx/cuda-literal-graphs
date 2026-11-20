@@ -100,12 +100,12 @@
 
   1  kernel  norm x8  unrolled_elementwise_kernel [direct_copy]
   2  kernel  norm x8  vectorized_elementwise_kernel [pow_tensor_scalar]
-  3  kernel  norm x8  reduce_kernel [Mean]
+  3  kernel  norm x8  reduce_kernel [mean]
   4  kernel  norm x8  vectorized_elementwise_kernel [add]
   5  kernel  norm x8  vectorized_elementwise_kernel [rsqrt]
-  6  kernel  norm x8  elementwise_kernel [gpu]
+  6  kernel  norm x8  elementwise_kernel [mul]
   7  kernel  norm x8  vectorized_elementwise_kernel [bfloat16_copy]
-  8  kernel  norm x8  elementwise_kernel [gpu]
+  8  kernel  norm x8  elementwise_kernel [mul]
   9  mem     memset   memset
  10  gemm    Q        ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_tn
  11  mem     memset   memset
@@ -115,27 +115,27 @@
  15  kernel  cat      CatArrayBatchedCopy
  16  kernel  cat      CatArrayBatchedCopy
  17  gemm    QK       ampere_bf16_s1688gemm_bf16_64x128_sliced1x2_ldg8_f2f_tn
- 18  kernel  ew x2    vectorized_elementwise_kernel [Mul]
+ 18  kernel  ew x2    vectorized_elementwise_kernel [mul]
  19  kernel  ew x2    unrolled_elementwise_kernel [direct_copy]
  20  kernel  softmax  softmax_warp_forward
  21  kernel  copy     vectorized_elementwise_kernel [bfloat16_copy]
  22  gemm    PV       ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_nn
- 23  kernel  copy     elementwise_kernel [gpu]
+ 23  kernel  copy     elementwise_kernel
  24  mem     memset   memset
  25  gemm    out      ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_tn
  26  kernel  norm x9  vectorized_elementwise_kernel [add]
  27  kernel  norm x9  unrolled_elementwise_kernel [direct_copy]
  28  kernel  norm x9  vectorized_elementwise_kernel [pow_tensor_scalar]
- 29  kernel  norm x9  reduce_kernel [Mean]
+ 29  kernel  norm x9  reduce_kernel [mean]
  30  kernel  norm x9  vectorized_elementwise_kernel [add]
  31  kernel  norm x9  vectorized_elementwise_kernel [rsqrt]
- 32  kernel  norm x9  elementwise_kernel [gpu]
+ 32  kernel  norm x9  elementwise_kernel [mul]
  33  kernel  norm x9  vectorized_elementwise_kernel [bfloat16_copy]
- 34  kernel  norm x9  elementwise_kernel [gpu]
+ 34  kernel  norm x9  elementwise_kernel [mul]
  35  gemm    gate     cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x64_64x4_tn_align8
  36  gemm    up       cutlass_80_tensorop_bf16_s16816gemm_relu_bf16_128x64_64x4_tn_align8
  37  kernel  silu x2  vectorized_elementwise_kernel
- 38  kernel  silu x2  vectorized_elementwise_kernel [Mul]
+ 38  kernel  silu x2  vectorized_elementwise_kernel [mul]
  39  mem     memset   memset
  40  gemm    down     ampere_bf16_s1688gemm_bf16_128x128_ldg8_f2f_stages_32x1_tn
  41  kernel  add      vectorized_elementwise_kernel [add]

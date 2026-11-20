@@ -32,6 +32,23 @@ WALK_TOP = [
     "TD.SGGTGS.DT",
 ]
 
+# ---- tiny walker 9x10: about the size of one graph box ------------------------
+# Front view. Walk frames look toward the travel side (mirrored when facing left).
+
+TINY_HEAD = ["..TTTTT..", ".TTTTTTT."]
+TINY_BODY = ["T.KGTGK.T", "T.SGGGS.T", "T.KKKKK.T", "T.TTTTT.T"]
+
+TINY = {
+    "idle_1": TINY_HEAD + ["TTSDSDSTT", "TTSSKSSTT"] + TINY_BODY + ["D..S.S..D", "...K.K..."],
+    # stride: legs apart, tail tips out
+    "walk_1": TINY_HEAD + ["TTSSDSDTT", "TTSSSSSTT"] + TINY_BODY + ["D.S...S.D", ".K.....K."],
+    # passing: legs together, tail tips in
+    "walk_2": TINY_HEAD + ["TTSSDSDTT", "TTSSSSSTT"] + TINY_BODY + [".D.S.S.D.", "...K.K..."],
+    # leek raised in the right hand
+    "victory_1": ["..TTTTT.L", ".TTTTTTTW", "TTSDSDSTS", "TTSSKSSTK", "T.KGTGKKT", "T.SGGG..T",
+                  "T.KKKKK.T", "T.TTTTT.T", "D..S.S..D", "...K.K..."],
+}
+
 FRAMES = {
     "idle_1": WALK_TOP + [
         "TD.KKKKKKW.T",

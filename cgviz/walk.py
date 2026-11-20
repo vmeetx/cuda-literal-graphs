@@ -108,10 +108,14 @@ def node_route(box, orient):
 
 
 class Walk:
-    def __init__(self, lay, nodes, edges, speed: float = 1.0, turns=None, gap=None):
+    def __init__(self, lay, nodes, edges, speed: float = 1.0, turns=None, gap=None,
+                 stagger=True):
         """turns: {"side": ticks, "reverse": ticks} turn lengths at speed 1 (v2 sprite), or
         None (v1: she turns on the spot). gap: cells between walkers at forks and joins
-        (default: the v1 sprite's width)."""
+        (default: the v1 sprite's width). stagger: siblings leave a fork one after another, so
+        big sprites don't cover each other; without it they all leave together, which is what
+        the graph says (every branch is ready the moment the fork node is done)."""
+        self.stagger = stagger
         self.lay, self.nodes, self.edges = lay, nodes, set(edges)
         self.speed = max(speed, 0.1)
         self.stop_frames = max(2, round(STOP_FRAMES / self.speed))
@@ -193,7 +197,7 @@ class Walk:
             k = w if i == 0 else self._new(w.pos)
             k.facing, k.steps = w.facing, w.steps
             self._send(k, n, v)
-            if i > 0:   # siblings leave one after another, a sprite-width apart
+            if i > 0 and self.stagger:   # siblings leave a sprite-width apart
                 k.state, k.timer = "hold", i * gap
             kids.append(k)
         self.splits[n] = len(kids)

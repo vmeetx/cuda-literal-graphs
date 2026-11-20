@@ -1,0 +1,122 @@
+{
+ "exec_graph_id": 2,
+ "nodes": [
+  {
+   "index": 0,
+   "node_type": "memset",
+   "tools_id": 8589934592,
+   "graph_id": 2,
+   "node_id": 0,
+   "kernel_name": null,
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [],
+   "dependents": [
+    1
+   ]
+  },
+  {
+   "index": 1,
+   "node_type": "kernel",
+   "tools_id": 8589934593,
+   "graph_id": 2,
+   "node_id": 1,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_256x64_ldg8_f2f_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    0
+   ],
+   "dependents": [
+    2
+   ]
+  },
+  {
+   "index": 2,
+   "node_type": "kernel",
+   "tools_id": 8589934594,
+   "graph_id": 2,
+   "node_id": 2,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZZZNS0_18GeluCUDAKernelImplERNS_18TensorIteratorBaseENS0_8GeluTypeEENKUlvE0_clEvENKUlvE1_clEvEUlN3c104HalfEE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    1
+   ],
+   "dependents": [
+    3
+   ],
+   "demangled": "void at::native::vectorized_elementwise_kernel<4, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>, false>(int, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>)"
+  },
+  {
+   "index": 3,
+   "node_type": "kernel",
+   "tools_id": 8589934595,
+   "graph_id": 2,
+   "node_id": 3,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_256x64_ldg8_f2f_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    2
+   ],
+   "dependents": [
+    4
+   ]
+  },
+  {
+   "index": 4,
+   "node_type": "kernel",
+   "tools_id": 8589934596,
+   "graph_id": 2,
+   "node_id": 4,
+   "kernel_name": "_ZN2at6native29vectorized_elementwise_kernelILi4EZZZNS0_18GeluCUDAKernelImplERNS_18TensorIteratorBaseENS0_8GeluTypeEENKUlvE0_clEvENKUlvE1_clEvEUlN3c104HalfEE_St5arrayIPcLm2EELb0EEEviT0_T1_",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    3
+   ],
+   "dependents": [
+    5
+   ],
+   "demangled": "void at::native::vectorized_elementwise_kernel<4, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>, false>(int, at::native::GeluCUDAKernelImpl(at::TensorIteratorBase&, at::native::GeluType)::{lambda()#2}::operator()() const::{lambda()#3}::operator()() const::{lambda(c10::Half)#1}, std::array<char*, 2ul>)"
+  },
+  {
+   "index": 5,
+   "node_type": "memset",
+   "tools_id": 8589934597,
+   "graph_id": 2,
+   "node_id": 5,
+   "kernel_name": null,
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    4
+   ],
+   "dependents": [
+    6
+   ]
+  },
+  {
+   "index": 6,
+   "node_type": "kernel",
+   "tools_id": 8589934598,
+   "graph_id": 2,
+   "node_id": 6,
+   "kernel_name": "ampere_fp16_s16816gemm_fp16_128x64_ldg8_f2f_stages_64x3_nn",
+   "event_ptr": 0,
+   "host_fn_addr": 0,
+   "host_fn_name": null,
+   "dependencies": [
+    5
+   ],
+   "dependents": []
+  }
+ ]
+}

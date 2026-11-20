@@ -18,6 +18,16 @@ How it came about, and everything learned along the way: [JOURNEY.md](JOURNEY.md
 - **A fork means independent**, not parallel: neither branch waits for the other. That is what lets the GPU overlap them, but the graph records only dependencies. A workload issued on a single stream captures as a plain chain, and no fork can appear.
 - **No time axis.** The walk shows structure, not timing. Miku walks at the same pace everywhere.
 
+### How the walk maps to the graph
+
+| On screen | In the captured graph |
+|---|---|
+| a box lights up while she stands at it | that kernel's turn: everything it depends on is done |
+| she splits into k Mikus at a box, all leaving together | a fork: k kernels that depend only on this one, all ready at once |
+| a Miku stops before a box and waits for the others | a join: a kernel that waits for every branch |
+| one Miku walking a straight line of boxes | a single stream: each kernel waits for the one before it |
+| which branch arrives first | nothing: the graph records dependencies, not durations |
+
 ## Commands
 
 | Command | What it does |
@@ -27,6 +37,8 @@ How it came about, and everything learned along the way: [JOURNEY.md](JOURNEY.md
 | `cgviz prefill` | the same layer, 512 tokens |
 | `cgviz demo` | the built-in diamond |
 | `cgviz draw path.py:function` | your own workload (see below) |
+| `cgviz draw examples/mlp.py:make` | a 3-layer MLP on one stream: a plain chain |
+| `cgviz draw examples/experts.py:make` | four experts on four streams: a 4-way fork and join |
 | `cgviz show path/graph_data.json` | replay a saved capture; no GPU needed |
 | `cgviz env` | print environment versions |
 | `cgviz time`, `cgviz vs-ncu` | not implemented yet |
@@ -36,7 +48,7 @@ Options for the drawing commands:
 | Option | Meaning |
 |---|---|
 | `--speed 1.5` | walk speed multiplier |
-| `--miku-size auto\|full\|compact\|small` | sprite size; `auto` picks the largest that fits the terminal (full needs about 90x42, compact 53x24, small is the original 12-cell sprite) |
+| `--miku-size tiny\|small\|compact\|full\|auto` | sprite size. `tiny` (default) is about one box, and the whole graph stays on screen. `small` is the original 12-cell sprite. `compact` and `full` are the big Miku: the map is spread out for her and the camera follows her. `auto` picks the largest size that still shows the whole graph. |
 | `--no-miku` | static drawing only |
 | `--full-names` | untruncated kernel names in the node list |
 | `--no-panel` | no portrait side panel (small sprite) |
@@ -45,7 +57,7 @@ Options for the drawing commands:
 
 ### Your own workload
 
-`cgviz draw my_model.py:make` imports `my_model.py` and calls `make()`. It must return `(step, inputs)`: `step(*inputs)` is captured. Everything inside `step` has to be capturable: a CPU readback such as `.item()`, `.cpu()` or `print(tensor)` breaks capture.
+`cgviz draw my_model.py:make` imports `my_model.py` and calls `make()`. It must return `(step, inputs)`: `step(*inputs)` is captured. An optional `ROLES` list in the file names the GEMMs in execution order. The files in `examples/` show the pattern, including `cgviz.presets.fork` for putting independent work on separate streams. Everything inside `step` has to be capturable: a CPU readback such as `.item()`, `.cpu()` or `print(tensor)` breaks capture.
 
 ## Requirements
 
@@ -85,7 +97,8 @@ Each capture writes to `out/<command>-<YYYYmmdd-HHMMSS>/`:
 ## Caveats
 
 - Tested on one GPU (RTX 3050 Laptop) with cuBLAS. Kernel choices differ between GPUs and library versions.
-- Small graphs only: around 30 nodes after folding stays readable. Walks get long (decode takes about 70 s at `--speed 1.5`).
+- Small graphs only: around 30 nodes after folding stays readable.
+- With the default tiny sprite, a tall graph is folded into side-by-side columns so all of it fits. Decode fits a 120x40 terminal and prefill fits 120x42; in a smaller terminal the camera follows her.
 - Folding hides the individual elementwise kernels inside a box. The node list keeps them.
 
 ## License and credits

@@ -11,7 +11,10 @@ from cgviz import draw, miku_assets, miku_walk, presets, show
 FIX = Path(__file__).parent / "fixtures/graphs"
 
 
-def run(preset, cols, rows, speed=1.0, size="auto"):
+def run(preset, cols, rows, speed=1.0, size=None):
+    """size None: the v2 tier the terminal allows (what --miku-size compact/full gives), or
+    the small v1 sprite when even compact doesn't fit."""
+    size = size or miku_walk.pick(cols, rows) or "small"
     data = json.loads((FIX / f"{preset}.json").read_text())
     lay0, *_ = draw.layout(data, presets.ROLES[preset], cols)
     lay, cn, frames, sp = miku_walk.walk(data, presets.ROLES[preset], cols, lay0.orient,
@@ -109,10 +112,10 @@ def test_pick(cols, rows, size, want):
 
 def test_small_terminals_fall_back_to_the_v1_sprite():
     lay, cn, frames, sp = run("diamond", 60, 20)
-    assert sp is None
+    assert isinstance(sp, show.V1Sprites)
     assert {s for f in frames for _, _, s, _, _ in f.walkers} <= {"idle_1", "walk_1", "walk_2",
                                                                   "victory_1"}
-    show.Scene(lay, cn, frames, 60, 20).compose(len(frames) // 2)
+    show.Scene(lay, cn, frames, 60, 20, sprites=sp).compose(len(frames) // 2)
 
 
 def test_layers_leave_room_for_her():

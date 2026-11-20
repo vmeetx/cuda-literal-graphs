@@ -37,9 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
     anim = argparse.ArgumentParser(add_help=False)
     anim.add_argument("--no-miku", action="store_true", help="static graph only")
     anim.add_argument("--speed", type=float, default=1.0, help="walk/stop speed multiplier")
-    anim.add_argument("--miku-size", choices=("auto", "full", "compact", "small"), default="auto",
-                      help="sprite size (auto: the largest that fits the terminal; small is "
-                           "the 12-cell v1 sprite)")
+    anim.add_argument("--miku-size", choices=("tiny", "small", "compact", "full", "auto"),
+                      default="tiny",
+                      help="sprite size. tiny (default): about one box, and the whole graph "
+                           "stays in view; small: the 12-cell v1 sprite; compact, full: the big "
+                           "Miku, the camera follows her; auto: the largest that keeps the "
+                           "whole graph in view")
     anim.add_argument("--no-panel", action="store_true", help="no portrait side panel")
     anim.add_argument("--full-names", action="store_true", help="untruncated kernel names")
     for name, desc in (("diamond", "two branches on two streams, joined"),
@@ -52,7 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
     sh = sub.add_parser("show", parents=[common, anim],
                         help="replay a saved capture (out/.../graph_data.json); no GPU needed")
     sh.add_argument("path", type=Path, help="graph_data.json written by an earlier run")
-    sh.add_argument("--labels", choices=("diamond", "decode", "prefill"),
+    sh.add_argument("--labels", choices=("diamond", "decode", "prefill", "mlp", "experts"),
                     help="name the GEMMs as that preset does (Q, K, V, ...)")
     sub.add_parser("time", parents=[common], help="eager vs graph replay over a size sweep")
     sub.add_parser("vs-ncu", parents=[common], help="this timer vs Nsight Compute")
@@ -85,7 +88,9 @@ def load_target(target: str) -> Callable[..., Any]:
         raise ImportError(f"cannot load {path}")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    return getattr(mod, func)
+    fn = getattr(mod, func)
+    fn.roles = getattr(mod, "ROLES", None)      # optional GEMM labels, in execution order
+    return fn
 
 
 def _out_dir(args: argparse.Namespace) -> Path:
@@ -149,7 +154,7 @@ def show_graph(args: argparse.Namespace, data: dict, roles: list[str] | None, ti
         size = shutil.get_terminal_size((width, args.rows))
         alay, acn, frames, sprites = miku_walk.walk(
             data, roles, width, lay.orient, size.columns, size.lines,
-            speed=args.speed, size=getattr(args, "miku_size", "auto"))
+            speed=args.speed, size=getattr(args, "miku_size", "tiny"))
         show.play(alay, acn, frames, title=f"cgviz {title} · captured graph",
                   panel=not args.no_panel, sprites=sprites)
     show.print_static(static)
@@ -181,8 +186,10 @@ def cmd_demo(args: argparse.Namespace) -> None:
 
 
 def cmd_draw(args: argparse.Namespace) -> None:
-    workload, inputs = load_target(args.target)()
-    _graph_pipeline(args, workload, inputs)
+    make = load_target(args.target)
+    workload, inputs = make()
+    _graph_pipeline(args, workload, inputs, make.roles,
+                    Path(args.target.rpartition(":")[0]).stem)
 
 
 def cmd_show(args: argparse.Namespace) -> None:

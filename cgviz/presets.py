@@ -13,7 +13,10 @@ NAMES = ("diamond", "decode", "prefill")
 
 # Labels for GEMM-type kernels, applied in execution order (the label pipeline's first step).
 LAYER_ROLES = ["Q", "K", "V", "QK", "PV", "out", "gate", "up", "down"]
-ROLES = {"diamond": ["gemm1", "gemm2"], "decode": LAYER_ROLES, "prefill": LAYER_ROLES}
+ROLES = {"diamond": ["gemm1", "gemm2"], "decode": LAYER_ROLES, "prefill": LAYER_ROLES,
+         # the examples/ workloads
+         "mlp": ["fc1", "fc2", "fc3"],
+         "experts": ["router"] + [f"{p}{i}" for i in range(1, 5) for p in ("up", "down")]}
 
 _STREAMS: dict[str, list] = {}
 

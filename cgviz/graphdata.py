@@ -42,6 +42,8 @@ def op_of(raw):
         return "norm"
     if "silu" in s:
         return "silu"
+    if "gelu" in s:
+        return "gelu"
     if "clamp" in s or "relu" in s:
         return "relu"
     if "copy" in s:
@@ -55,7 +57,7 @@ def op_of(raw):
     return "ew"
 
 
-SMALL = {"norm", "silu", "relu", "copy", "scale", "mul", "add", "ew"}  # elementwise / tiny reductions
+SMALL = {"norm", "silu", "gelu", "relu", "copy", "scale", "mul", "add", "ew"}  # elementwise / tiny reductions
 
 
 def demangle(names):
@@ -165,7 +167,7 @@ def collapse(nodes, edges):
         base = dict(nodes[r])
         if len(ms) > 1:
             ops = {nodes[m]["op"] for m in ms}
-            word = "norm" if "norm" in ops else "silu" if "silu" in ops else "ew"
+            word = next((w for w in ("norm", "silu", "gelu") if w in ops), "ew")
             base.update(label=f"{word} x{len(ms)}", members=ms, op="run")
         out[r] = base
     e2 = {(rep[u], rep[v]) for u, v in edges if rep[u] != rep[v]}

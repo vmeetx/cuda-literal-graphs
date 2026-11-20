@@ -163,6 +163,10 @@ def _cells(tier, key, dy):
     return halfblock.cells(rows, miku_assets.load("walk", tier)["rgb"])
 
 
+SIZES = ("tiny", "small", "compact", "full")     # smallest first
+DEFAULT_SIZE = "tiny"
+
+
 def pick(cols, rows, size="auto"):
     """The v2 tier for a cols x rows terminal, or None for the small v1 sprite."""
     if size == "small":
@@ -172,17 +176,64 @@ def pick(cols, rows, size="auto"):
     return miku_assets.pick_tier(cols, rows)
 
 
-def walk(data, roles, width, orient, cols, rows, speed=1.0, size="auto"):
-    """Lay the graph out with room for the sprite and simulate the walk.
-    Returns (layout, nodes, frames, sprites); sprites is None for the v1 sprite."""
+def _fits(scene):
+    return scene.cw <= scene.cols and scene.ch <= scene.vh
+
+
+def _whole(data, roles, cols, rows, speed, size):
+    """Tiny or small sprite: lay the graph out so all of it fits cols x rows with her walking
+    on it, then simulate. Candidates, in order of preference: left-to-right, top-to-bottom,
+    top-to-bottom folded into columns (shorter and shorter). The first that fits wins;
+    otherwise the one that overflows least (the camera then follows her)."""
     from cgviz import draw, show
     from cgviz.walk import Walk
 
-    tier = pick(cols, rows, size)
-    if tier is None:
-        lay, _, cn, ce = draw.layout(data, roles, width, prefer=(orient,),
-                                     node_gap=show.NODE_GAP[orient])
-        return lay, cn, Walk(lay, cn, ce, speed=speed).frames(), None
+    sp = show.TinySprites() if size == "tiny" else show.V1Sprites()
+    gaps = ({"TB": sp.w + 1, "LR": sp.h - 1} if size == "tiny" else show.NODE_GAP)
+
+    def attempt(**kw):
+        lay, _, cn, ce = draw.layout(data, roles, cols, node_gap=gaps, **kw)
+        frames = Walk(lay, cn, ce, speed=speed, gap=sp.w + 1,
+                      stagger=size != "tiny").frames()
+        sc = show.Scene(lay, cn, frames, cols, rows, panel=False, sprites=sp)
+        over = max(0, sc.ch - sc.vh) + max(0, sc.cw - sc.cols)
+        return over, sc.ch - sc.vh, (lay, cn, frames, sp)
+
+    tries = [attempt(prefer=("LR",)), attempt(prefer=("TB",))]
+    best = min(tries, key=lambda t: t[0])
+    height = rows - 2 - sp.h
+    for _ in range(8):
+        if best[0] == 0 or height <= 6:
+            break
+        t = attempt(prefer=(), height=height)
+        if t[0] < best[0]:
+            best = t
+        if t[1] <= 0:
+            break                     # short enough: shorter columns only get wider
+        height -= t[1]
+    return best[2]
+
+
+def walk(data, roles, width, orient, cols, rows, speed=1.0, size=DEFAULT_SIZE):
+    """Lay the graph out with room for the sprite and simulate the walk.
+    size: tiny (default, about one box: the whole graph stays in view), small (the v1
+    sprite), compact or full (the v2 Miku, camera follows her), or auto (the largest that
+    keeps the whole graph in view). Returns (layout, nodes, frames, sprites)."""
+    from cgviz import show
+
+    if size == "auto":
+        for s in reversed(SIZES):
+            out = walk(data, roles, width, orient, cols, rows, speed, s)
+            sc = show.Scene(out[0], out[1], out[2], cols, rows, panel=False, sprites=out[3])
+            if _fits(sc):
+                return out
+        return out
+    if size in ("tiny", "small"):
+        return _whole(data, roles, cols, rows, speed, size)
+    from cgviz import draw
+    from cgviz.walk import Walk
+
+    tier = size
     sp = Sprites(tier)
     gap = {"TB": sp.w + 3, "LR": sp.h}[orient]      # siblings a sprite apart
     rank = {"TB": sp.h + 2, "LR": sp.w + 2}[orient]  # and layers too
