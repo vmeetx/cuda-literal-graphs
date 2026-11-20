@@ -77,8 +77,8 @@ def plan(moves, x0=0, idle_ticks=12, tired=None):
             if facing != "front":
                 _play(out, "turn_to_front" + mood, facing, x)
                 facing = "front"
-            for _ in range(idle_ticks):
-                out.append(Tick("idle", 0, "front", x))
+            for _ in range(idle_ticks):                # a tired rest keeps the tired face
+                out.append(Tick("idle" + mood, 0, "front", x))
             continue
         d = (target > x) - (target < x)
         if d == 0:

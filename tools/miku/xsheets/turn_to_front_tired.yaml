@@ -6,4 +6,4 @@ loop: false
 frames:
   - {drawing: stand_settle, ticks: 3, key: true, u: 1.0}
   - {drawing: stand, ticks: 2, u: 1.0}
-  - {drawing: front, ticks: 3, key: true}
+  - {drawing: front_tired, ticks: 3, key: true}

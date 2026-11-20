@@ -65,7 +65,8 @@ def face_edits(src, face="cheery"):
             for x in range(cx - 2, cx + 3):
                 g[22][x] = "B"
             for x in range(cx - 1, cx + 2):
-                g[23][x] = "F"
+                g[23][x] = "D"
+            g[23][cx - 2] = g[23][cx + 2] = "B"
         for x in (28, 29):
             g[25][x] = "U"
         for x in (43, 44):
@@ -85,6 +86,12 @@ def face_edits(src, face="cheery"):
     g[30][36] = "B"                               # flat, tired mouth
     g[30][37] = "B"
     return ["".join(r) for r in g]
+
+
+def tired_front():
+    """P1 for a tired rest and the tired turns: line eyes and a flat mouth (the leek already
+    hangs low toward the ground in P1)."""
+    return face_edits(p1(), "line")
 
 
 def turned_head(face="cheery"):
@@ -310,12 +317,12 @@ LEGS = {
         ".BFFFB.....", "BFFFFB.....", "BFFFB......", ".BBB......."]),
     "f2": (2, [  # tired: short shuffle forward, foot 2 px ahead
         "..BEEEB....", "..BEEEB....", "..BEEEB....", "...BFFFB...", "...BFFFB...",
-        "...BFFFB...", "...BFFFB...", "...BFFFB...", "....BFFFB..", "....BFFFB..",
-        "....BFFFB..", "....BFFFFB.", "....BFFFFB.", "....BBBBBB."]),
+        "...BFFFB...", "...BFFFB...", "....BFFFB..", "....BFFFB..", ".....BFFFB.",
+        ".....BFFFB.", ".....BFFFFB", ".....BFFFFB", ".....BBBBBB"]),
     "k2": (3, [  # tired: just behind, foot flat (dragging, no toe-off)
         "...BEEEB...", "...BEEEB...", "...BEEEB...", "..BFFFB....", "..BFFFB....",
-        "..BFFFB....", "..BFFFB....", "..BFFFB....", ".BFFFB.....", ".BFFFB.....",
-        ".BFFFB.....", ".BFFFFB....", ".BFFFFB....", ".BBBBBB...."]),
+        "..BFFFB....", "..BFFFB....", ".BFFFB.....", ".BFFFB.....", "BFFFB......",
+        "BFFFB......", "BFFFFB.....", "BFFFFB.....", "BBBBBB....."]),
     "k2h": (3, [  # tired: trailing foot peeling off, heel up 1 px
         "...BEEEB...", "...BEEEB...", "...BEEEB...", "..BFFFB....", "..BFFFB....",
         "..BFFFB....", "..BFFFB....", ".BFFFB.....", ".BFFFB.....", ".BFFFB.....",
@@ -391,8 +398,8 @@ LIMP_ARM = (29, 35, [      # near arm hanging limp in front: skin, sleeve taperi
     ".BDDDB",
     ".BDDMB",
     ".BDDMB",
-    "..BDMB",
-    "..BAAB",
+    ".BDDMB",
+    ".BAAAB",
     ".BEEEB",
     ".BEEPB",
     "..BEB.",
@@ -467,7 +474,9 @@ def stalk(cv, a, b, bob, behind=False):
     for i in range(n + 1):
         x = round(x0 + (x1 - x0) * i / n)
         y = round(y0 + (y1 - y0) * i / n) + bob
-        for dx, ch in ((-1, "B"), (0, "b"), (1, "b" if i < n * 0.4 else "I"), (2, "B")):
+        f = i / n
+        body = ("L", "L", "N") if f < 0.18 else ("b", "b", "I") if f < 0.45 else ("I", "I", "X")
+        for dx, ch in ((-1, "B"), (0, body[0]), (1, body[1]), (2, body[2]), (3, "B")):
             if not behind or (x + dx, y) not in cv:
                 cv[(x + dx, y)] = ch
 
@@ -532,7 +541,7 @@ def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0):
     far_tail = {kk: FAR_HAIR.get(v, v) for kk, v in
                 sway(right, (0.5 + 1.8 * phase) * tamp, -3 - round(u)).items()}
     cv.update({(x + hdx, y + bob + hdy): c for (x, y), c in far_tail.items()})
-    near_cells = sway(left, (-0.5 - 2.2 * phase) * tamp, 3 + round(2 * u))
+    near_cells = sway(left, (-0.5 - 2.2 * phase) * tamp, 3 + round(u))
     cv.update({(x + hdx, y + bob + hdy): c for (x, y), c in near_cells.items()})
     if leek == "drag":   # far hand reaching back past the near tail, the leek trailing on the ground
         paste(cv, (o["leaves"] + (k % 2), 61, DRAG_LEAVES_2 if k % 2 else DRAG_LEAVES))   # scraping

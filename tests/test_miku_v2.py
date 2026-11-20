@@ -146,7 +146,7 @@ def test_tired_rest_uses_tired_turns_and_transitions():
     clips = [t.clip for t in ticks]
     order = [c for i, c in enumerate(clips) if i == 0 or clips[i - 1] != c]
     assert order == ["idle", "turn_to_side", "walk_to_tired", "walk_tired", "turn_to_front_tired",
-                     "idle", "turn_to_side_tired", "walk_from_tired", "walk"], order
+                     "idle_tired", "turn_to_side_tired", "walk_from_tired", "walk"], order
     assert miku_motion.violations(ticks) == []
 
 

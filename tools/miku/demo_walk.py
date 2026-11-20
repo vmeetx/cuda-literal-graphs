@@ -32,9 +32,11 @@ def scene(cols, rows, tick, label, bg=None, top=37):
     grid[top + 1][x0] = grid[top + 1][x1] = ("┃", BOX, bg, False)
     for i, ch in enumerate(" gemm1 · out "):
         grid[top + 1][(cols - 13) // 2 + i] = (ch, (255, 255, 255), bg, True)
-    clip = "walk" if tick.clip == "idle" else tick.clip
+    clip = tick.clip
     if tick.clip == "idle":
         rowsg = miku_assets.load("turn_to_side")["frames"][0]["grid"]   # front (P1)
+    elif tick.clip == "idle_tired":
+        rowsg = miku_assets.load("turn_to_front_tired")["frames"][-1]["grid"]   # tired front
     else:
         rowsg = miku_assets.frame_grid(clip, tick.frame, "left" if tick.facing == "left" else "right")
     rowsg = miku_assets.terminal_variant(rowsg)

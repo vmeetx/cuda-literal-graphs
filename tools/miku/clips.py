@@ -89,6 +89,8 @@ def turn_frames(name):
         d = f["drawing"]
         if d == "front":
             rows, meta = p1(), {"view": "front", "facing": "front", "drawing": "front"}
+        elif d == "front_tired":
+            rows, meta = q_walk.tired_front(), {"view": "front", "facing": "front", "drawing": d}
         elif d.startswith("stand"):
             rows, meta = q_walk.pose(d, u=f.get("u", 0.0))
         else:

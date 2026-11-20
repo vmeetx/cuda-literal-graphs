@@ -4,5 +4,5 @@ clip: turn_to_side_tired
 view: turn
 loop: false
 frames:
-  - {drawing: front, ticks: 3, key: true}
+  - {drawing: front_tired, ticks: 3, key: true}
   - {drawing: stand_go, ticks: 3, key: true, u: 1.0}
