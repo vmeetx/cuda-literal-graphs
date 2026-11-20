@@ -16,19 +16,22 @@ from cgviz import halfblock, miku_assets, miku_motion, show  # noqa: E402
 BOX = (80, 220, 255)
 
 
-def scene(cols, rows, tick, label):
-    grid = [[show.BLANK] * cols for _ in range(rows)]
-    top = 37
+def scene(cols, rows, tick, label, bg=None, top=37):
+    """One frame: a graph box and Miku over it. `bg` is the scene background (None = the
+    terminal's own). A sprite cell with a transparent half keeps the background of the cell it
+    covers, never black or the terminal default."""
+    blank = (" ", None, bg, False)
+    grid = [[blank] * cols for _ in range(rows)]
     x0, x1 = 4, cols - 5
     for x in range(x0, x1 + 1):
-        grid[top][x] = ("━", BOX, None, False)
-        grid[top + 2][x] = ("━", BOX, None, False)
+        grid[top][x] = ("━", BOX, bg, False)
+        grid[top + 2][x] = ("━", BOX, bg, False)
     for y, (a, b) in ((top, ("┏", "┓")), (top + 2, ("┗", "┛"))):
-        grid[y][x0] = (a, BOX, None, False)
-        grid[y][x1] = (b, BOX, None, False)
-    grid[top + 1][x0] = grid[top + 1][x1] = ("┃", BOX, None, False)
+        grid[y][x0] = (a, BOX, bg, False)
+        grid[y][x1] = (b, BOX, bg, False)
+    grid[top + 1][x0] = grid[top + 1][x1] = ("┃", BOX, bg, False)
     for i, ch in enumerate(" gemm1 · out "):
-        grid[top + 1][(cols - 13) // 2 + i] = (ch, (255, 255, 255), None, True)
+        grid[top + 1][(cols - 13) // 2 + i] = (ch, (255, 255, 255), bg, True)
     clip = "walk" if tick.clip == "idle" else tick.clip
     if tick.clip == "idle":
         rowsg = miku_assets.load("turn_to_side")["frames"][0]["grid"]   # front (P1)
@@ -44,11 +47,11 @@ def scene(cols, rows, tick, label):
                 continue
             yy, xx = j + 2, sx + i
             if 0 <= yy < rows and 0 <= xx < cols:
-                ch, fg, bg = c
-                grid[yy][xx] = (ch, fg, bg, False)
+                ch, fg, cbg = c
+                grid[yy][xx] = (ch, fg, cbg if cbg else grid[yy][xx][2], False)
     text = f"{label}   clip: {tick.clip}   facing: {tick.facing}"
     for i, ch in enumerate(text[:cols]):
-        grid[rows - 2][i + 2] = (ch, (180, 184, 190), None, False)
+        grid[rows - 2][i + 2] = (ch, (180, 184, 190), bg, False)
     return grid
 
 

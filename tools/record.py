@@ -13,6 +13,7 @@ closing frame.
 from __future__ import annotations
 
 import argparse
+import codecs
 import fcntl
 import json
 import os
@@ -57,12 +58,29 @@ def record(cmd, cols, rows, timeout=900):
     return events
 
 
+def decode_events(events):
+    """pty reads split the byte stream anywhere, including inside a multi-byte character such
+    as the half block (3 bytes). Decoding each read on its own turned those halves into U+FFFD
+    glyphs, drawn as dark specks on the sprite in the GIF. An incremental decoder carries the
+    unfinished bytes over to the next read."""
+    dec = codecs.getincrementaldecoder("utf-8")("replace")
+    out = []
+    for t, chunk in events:
+        s = dec.decode(chunk)
+        if s:
+            out.append((t, s))
+    rest = dec.decode(b"", final=True)
+    if rest:
+        out.append((events[-1][0], rest))
+    return out
+
+
 def write_cast(events, cols, rows, path):
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(json.dumps({"version": 2, "width": cols, "height": rows,
                              "env": {"TERM": "xterm-256color"}}) + "\n")
-        for t, chunk in events:
-            fh.write(json.dumps([round(t, 6), "o", chunk.decode("utf-8", "replace")]) + "\n")
+        for t, text in decode_events(events):
+            fh.write(json.dumps([round(t, 6), "o", text]) + "\n")
 
 
 def read_cast(path):
