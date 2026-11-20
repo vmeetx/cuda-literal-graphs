@@ -16,10 +16,15 @@ from cgviz import halfblock, miku_assets, miku_motion, show, term  # noqa: E402
 BOX = (80, 220, 255)
 
 
-def scene(cols, rows, tick, label, bg=None, top=37):
+def sprite_top(top, tier="full"):
+    """Terminal row of the sprite's first cell, so her feet stand on the box at row `top`."""
+    return top - miku_assets.tier_cells(tier)[1] + 1
+
+
+def scene(cols, rows, tick, label, bg=None, top=37, tier="full"):
     """One frame: a graph box and Miku over it. `bg` is the scene background (None = the
     terminal's own). A sprite cell with a transparent half keeps the background of the cell it
-    covers, never black or the terminal default."""
+    covers, never black or the terminal default. `tier` is the sprite size (miku_assets.TIERS)."""
     blank = (" ", None, bg, False)
     grid = [[blank] * cols for _ in range(rows)]
     x0, x1 = 4, cols - 5
@@ -34,25 +39,26 @@ def scene(cols, rows, tick, label, bg=None, top=37):
         grid[top + 1][(cols - 13) // 2 + i] = (ch, (255, 255, 255), bg, True)
     clip = tick.clip
     if tick.clip == "idle":
-        rowsg = miku_assets.load("turn_to_side")["frames"][0]["grid"]   # front (P1)
+        rowsg = miku_assets.load("turn_to_side", tier)["frames"][0]["grid"]   # front
     elif tick.clip == "idle_tired":
-        rowsg = miku_assets.load("turn_to_front_tired")["frames"][-1]["grid"]   # tired front
+        rowsg = miku_assets.load("turn_to_front_tired", tier)["frames"][-1]["grid"]   # tired front
     else:
-        rowsg = miku_assets.frame_grid(clip, tick.frame, "left" if tick.facing == "left" else "right")
+        rowsg = miku_assets.frame_grid(clip, tick.frame,
+                                       "left" if tick.facing == "left" else "right", tier)
     rowsg = miku_assets.terminal_variant(rowsg)
-    pal = miku_assets.load("walk")["rgb"]
+    pal = miku_assets.load("walk", tier)["rgb"]
     cells = halfblock.cells(rowsg, pal)
-    sx = tick.x
+    sx, sy = tick.x, sprite_top(top, tier)
     for j, row in enumerate(cells):
         for i, c in enumerate(row):
             if c is None:
                 continue
-            yy, xx = j + 2, sx + i
+            yy, xx = j + sy, sx + i
             if 0 <= yy < rows and 0 <= xx < cols:
                 ch, fg, cbg = c
                 grid[yy][xx] = (ch, fg, cbg if cbg else grid[yy][xx][2], False)
     text = f"{label}   clip: {tick.clip}   facing: {tick.facing}"
-    for i, ch in enumerate(text[:cols]):
+    for i, ch in enumerate(text[:max(0, cols - 3)]):
         grid[rows - 2][i + 2] = (ch, (180, 184, 190), bg, False)
     return grid
 
@@ -63,8 +69,16 @@ def main():
     a.add_argument("--rest", action="store_true")
     a.add_argument("--cols", type=int, default=150)
     a.add_argument("--rows", type=int, default=44)
+    a.add_argument("--tier", choices=list(miku_assets.TIERS),
+                   help="sprite size (default: the largest that fits the terminal)")
     o = a.parse_args()
-    span = o.cols - 74 - 8
+    tier = o.tier or miku_assets.pick_tier(o.cols, o.rows)
+    if tier is None:
+        sys.exit(f"terminal {o.cols}x{o.rows} is too small for Miku "
+                 f"(the smallest size needs {miku_assets.tier_cells('compact')[0] + 16}x"
+                 f"{miku_assets.tier_cells('compact')[1] + 6})")
+    top = o.rows - 7
+    span = o.cols - miku_assets.tier_cells(tier)[0] - 8
     if o.rest:
         moves = [("walk", 4 + span), ("stop", None), ("walk", 4), ("stop", None)]
         ticks = miku_motion.plan(moves, x0=4, idle_ticks=14, tired={0})
@@ -86,7 +100,7 @@ def main():
     t0 = time.monotonic()
     try:
         for k, t in enumerate(ticks):
-            g = scene(o.cols, o.rows, t, label)
+            g = scene(o.cols, o.rows, t, f"{label}   [{tier}]", top=top, tier=tier)
             out.write(term.SYNC_BEGIN + show.diff(prev, g, depth) + term.SYNC_END)
             out.flush()
             prev = g

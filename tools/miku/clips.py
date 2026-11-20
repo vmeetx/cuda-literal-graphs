@@ -22,6 +22,7 @@ sys.path.insert(0, str(HERE))
 from PIL import Image, ImageDraw, ImageFont  # noqa: E402
 
 import sheet  # noqa: E402
+import halve  # noqa: E402
 import q_walk  # noqa: E402
 import side_body  # noqa: E402
 import xsheet  # noqa: E402
@@ -100,13 +101,31 @@ def turn_frames(name):
     return xs, out
 
 
-def save_clip(name, xs, frames):
-    ASSETS.mkdir(parents=True, exist_ok=True)
+def save_clip(name, xs, frames, tier=""):
+    folder = ASSETS / tier
+    folder.mkdir(parents=True, exist_ok=True)
     data = {"clip": name, "fps": 12, "loop": xs.get("loop", False), "view": xs.get("view"),
-            "faces": "right", "mirror_for_left": True, "baseline": 67,
+            "faces": "right", "mirror_for_left": True,
+            "baseline": halve.BASELINE if tier == "compact" else 67,
             "palette": palette_hex(), "ticks": sum(f["ticks"] for f in frames), "frames": frames}
-    (ASSETS / f"{name}.json").write_text(json.dumps(data, separators=(",", ":")))
+    (folder / f"{name}.json").write_text(json.dumps(data, separators=(",", ":")))
     return data
+
+
+# ---------------------------------------------------------------- compact tier: the approved
+# drawings at half size (halve.py), same exposure sheets, so identical timing
+COMPACT_CLIPS = ("walk", "walk_tired", "walk_to_tired", "walk_from_tired", "turn_to_side",
+                 "turn_to_front", "turn_to_side_tired", "turn_to_front_tired")
+
+
+def build_compact(outdir):
+    out = Path(outdir)
+    out.mkdir(parents=True, exist_ok=True)
+    for name in COMPACT_CLIPS:
+        xs, frames = halve.clip_frames(name)
+        save_clip(name, xs, frames, tier="compact")
+        contact_sheet(name, frames, out / f"compact_contact_{name}.png", scale=6)
+        print("compact", name, len(frames), "drawings", sum(f["ticks"] for f in frames), "ticks")
 
 
 def contact_sheet(name, frames, out, scale=3):
@@ -207,6 +226,7 @@ def main(outdir=str(ROOT / "findings/miku_v2/gate2")):
         built[name] = (xs, frames)
         print(name, len(frames), "drawings", sum(f["ticks"] for f in frames), "ticks")
     turnaround(out / "turnaround.png")
+    build_compact(ROOT / "findings/miku_v2/tiers")
     return built
 
 

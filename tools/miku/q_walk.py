@@ -519,9 +519,11 @@ def leg(cv, shape, side, bob, grounded):
     paste(cv, (HIP_X[side] - hip - 1, top, rows), recolor=FAR_LEG if side == "far" else None)
 
 
-def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0):
+def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0, even=False):
     """One drawing. u = tiredness (0 cheerful, 1 tired); hem = the (lagged) hem state; opt =
-    tired thumbnail option; k = drawing index (the dragged leaves scrape)."""
+    tired thumbnail option; k = drawing index (the dragged leaves scrape). even=True rounds
+    the bob and head offsets up to even pixels, for the halved compact tier: every frame then
+    halves on the same pixel pairs, so her features don't shimmer."""
     tired_legs = u >= 0.5
     table = TIRED_DRAW if tired_legs else DRAW
     near, far, ng, fg, bob, sway_, arm = table[drawing]
@@ -532,6 +534,11 @@ def pose(drawing="contact_r", t=0, period=12, u=0.0, hem=None, opt=None, k=0):
     hdy = round(o["hdy"] * min(1.0, u / 0.8))
     if tired_legs and drawing.startswith("down"):
         hdy -= 1                                              # dip in the body only, not the head
+    if even:
+        up2 = lambda v: 2 * math.ceil(v / 2)                  # noqa: E731
+        head_total = up2(bob + hdy)
+        bob, hdx = up2(bob), up2(hdx)
+        hdy = head_total - bob
     leek = leek_stage(u)
     face = face_stage(u)
     cv = {}

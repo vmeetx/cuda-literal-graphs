@@ -37,9 +37,9 @@ def _hex(c):
     return "default" if c is None else "%02x%02x%02x" % c
 
 
-def _frames():
-    for clip in miku_assets.clips():
-        for i, _ in enumerate(miku_assets.load(clip)["frames"]):
+def _frames(tier):
+    for clip in miku_assets.clips(tier):
+        for i, _ in enumerate(miku_assets.load(clip, tier)["frames"]):
             for facing in ("right", "left"):
                 yield clip, i, facing
 
@@ -53,25 +53,28 @@ def test_split_half_blocks_survive_decoding():
     assert "�" not in fixed and fixed == data.decode()
 
 
+@pytest.mark.parametrize("tier", list(miku_assets.TIERS))
 @pytest.mark.parametrize("bgname", sorted(BACKGROUNDS))
-def test_terminal_output_matches_sprite_cells(bgname):
+def test_terminal_output_matches_sprite_cells(bgname, tier):
     bg = BACKGROUNDS[bgname]
     screen = pyte.Screen(COLS, ROWS)
     stream = pyte.Stream(screen)
     prev = None
-    for clip, i, facing in _frames():
-        view = miku_assets.load(clip)["frames"][i]["anchors"].get("view")
+    sw, sh = miku_assets.tier_cells(tier)
+    y0 = demo_walk.sprite_top(37, tier)
+    for clip, i, facing in _frames(tier):
+        view = miku_assets.load(clip, tier)["frames"][i]["anchors"].get("view")
         tick = miku_motion.Tick(clip, i, "front" if view == "front" else facing, X)
-        grid = demo_walk.scene(COLS, ROWS, tick, "regression", bg=bg)
+        grid = demo_walk.scene(COLS, ROWS, tick, "regression", bg=bg, tier=tier)
         data = show.diff(prev, grid).encode()
         stream.feed("".join(t for _, t in record.decode_events(_chunks(data))))
         prev = grid
         sprite = halfblock.cells(miku_assets.terminal_variant(
-            miku_assets.frame_grid(clip, i, "left" if tick.facing == "left" else "right")),
-            miku_assets.load("walk")["rgb"])
-        for y in range(2, 2 + 36):                          # the sprite's rectangle (72 px = 36 cells)
-            for x in range(X, min(X + 74, COLS)):
-                own = sprite[y - 2][x - X] if x - X < len(sprite[y - 2]) else None
+            miku_assets.frame_grid(clip, i, "left" if tick.facing == "left" else "right", tier)),
+            miku_assets.load("walk", tier)["rgb"])
+        for y in range(y0, y0 + sh):                        # the sprite's rectangle
+            for x in range(X, min(X + sw, COLS)):
+                own = sprite[y - y0][x - X] if x - X < len(sprite[y - y0]) else None
                 if own is None or own[2] is None:           # transparent (half): the scene shows through
                     assert screen.buffer[y][x].bg == _hex(bg), (clip, i, facing, bgname, x, y)
                 want = grid[y][x]
