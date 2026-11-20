@@ -14,7 +14,7 @@ import signal
 import sys
 import time
 
-from cgviz import halfblock
+from cgviz import halfblock, term
 from cgviz.sprites import FRAMES, PALETTE
 
 RENDERERS = ("braille", "block", "gamma")
@@ -311,19 +311,20 @@ def grid_text(grid):
 # ---------------------------------------------------------------- diff renderer
 
 
-def _sgr(fg, bg, bold):
+def _sgr(fg, bg, bold, depth=term.TRUECOLOR):
     s = "\x1b[0m"
     if bold:
         s += "\x1b[1m"
     if fg:
-        s += "\x1b[38;2;%d;%d;%dm" % fg
+        s += term.fg(fg, depth)
     if bg:
-        s += "\x1b[48;2;%d;%d;%dm" % bg
+        s += term.bg(bg, depth)
     return s
 
 
-def diff(prev, grid):
-    """Escape sequence that turns `prev` into `grid`, touching only changed cells."""
+def diff(prev, grid, depth=term.TRUECOLOR):
+    """Escape sequence that turns `prev` into `grid`, touching only changed cells. `depth` is
+    the terminal's colour depth (term.TRUECOLOR or term.C256)."""
     out, cur = [], None
     for r, row in enumerate(grid):
         old = prev[r] if prev is not None and r < len(prev) else None
@@ -337,7 +338,7 @@ def diff(prev, grid):
                 ch, fg, bg, bold = row[c]
                 st = (fg, bg, bold)
                 if st != cur:
-                    out.append(_sgr(fg, bg, bold))
+                    out.append(_sgr(fg, bg, bold, depth))
                     cur = st
                 out.append(ch)
                 c += 1
@@ -372,7 +373,9 @@ class _Terminal:
 
     def __exit__(self, *exc):
         try:
-            self.out.write("\x1b[0m\x1b[?7h\x1b[?25h\x1b[?1049l")
+            # end any synchronized frame first: an interrupt mid-frame must not leave the
+            # terminal holding its paint
+            self.out.write(term.SYNC_END + "\x1b[0m\x1b[?7h\x1b[?25h\x1b[?1049l")
             self.out.flush()
         finally:
             if self.saved is not None:
@@ -389,7 +392,7 @@ def _raise_interrupt(*_):
 
 def can_animate(out=None) -> bool:
     out = out or sys.stdout
-    if not out.isatty():
+    if not out.isatty() or not term.enable_vt(out):
         return False
     size = shutil.get_terminal_size((0, 0))
     return size.columns >= MIN_COLS and size.lines >= MIN_ROWS
@@ -399,6 +402,7 @@ def play(lay, nodes, frames, title="", panel=True, out=None, fps=12, hold=1.5):
     """Run the animation in the alternate screen. Returns True if it ran to the end."""
     out = out or sys.stdout
     finished = False
+    depth = term.color_depth()
     with _Terminal(out):
         size, scene, prev = None, None, None
         t0 = time.monotonic()
@@ -412,7 +416,8 @@ def play(lay, nodes, frames, title="", panel=True, out=None, fps=12, hold=1.5):
                     prev = None
                     out.write("\x1b[0m\x1b[2J")
                 grid = scene.compose(i)
-                out.write(diff(prev, grid))
+                # one synchronized update per frame: the terminal paints it all at once
+                out.write(term.SYNC_BEGIN + diff(prev, grid, depth) + term.SYNC_END)
                 out.flush()
                 prev = grid
                 i += 1

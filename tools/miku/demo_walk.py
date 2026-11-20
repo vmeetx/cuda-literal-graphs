@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from cgviz import halfblock, miku_assets, miku_motion, show  # noqa: E402
+from cgviz import halfblock, miku_assets, miku_motion, show, term  # noqa: E402
 
 BOX = (80, 220, 255)
 
@@ -79,13 +79,15 @@ def main():
         label = "3/4 walk across one box top, both directions, with turns"
     assert not miku_motion.violations(ticks)
     out = sys.stdout
+    term.enable_vt(out)
+    depth = term.color_depth()
     out.write("\x1b[?1049h\x1b[?25l\x1b[2J")
     prev = None
     t0 = time.monotonic()
     try:
         for k, t in enumerate(ticks):
             g = scene(o.cols, o.rows, t, label)
-            out.write(show.diff(prev, g))
+            out.write(term.SYNC_BEGIN + show.diff(prev, g, depth) + term.SYNC_END)
             out.flush()
             prev = g
             d = t0 + (k + 1) / 12 - time.monotonic()
@@ -93,7 +95,7 @@ def main():
                 time.sleep(d)
         time.sleep(0.8)
     finally:
-        out.write("\x1b[0m\x1b[?25h\x1b[?1049l")
+        out.write(term.SYNC_END + "\x1b[0m\x1b[?25h\x1b[?1049l")
         out.flush()
 
 

@@ -72,6 +72,8 @@ def test_terminal_restored_on_interrupt(sig):
     assert b"\x1b[?1049h" in out and b"\x1b[?25l" in out        # entered alt screen, hid cursor
     tail = out[out.rfind(b"\x1b[?1049h"):]
     assert b"\x1b[?25h" in tail and b"\x1b[?1049l" in tail and b"\x1b[?7h" in tail
+    assert b"\x1b[?2026h" in out                                  # frames are synchronized
+    assert tail.rfind(b"\x1b[?2026l") > tail.rfind(b"\x1b[?2026h")  # never left mid-frame
     assert b"AFTER" in out                                        # play() returned normally
 
 
