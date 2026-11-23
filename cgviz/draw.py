@@ -47,7 +47,9 @@ def style_of(nd):
 # ---------------------------------------------------------------- labels
 
 FAMILY = [("splitK", re.compile(r"splitkreduce", re.I)), ("gemv", re.compile(r"gemv", re.I)),
-          ("gemm", re.compile(r"gemm", re.I)), ("softmax", re.compile(r"softmax", re.I)),
+          ("gemm", re.compile(r"gemm", re.I)),
+          ("attn", re.compile(r"flash|attention|fmha", re.I)),
+          ("softmax", re.compile(r"softmax", re.I)),
           ("cat", re.compile(r"catarray", re.I)), ("reduce", re.compile(r"reduce_kernel", re.I)),
           ("copy", re.compile(r"copy", re.I))]
 
@@ -251,9 +253,18 @@ def draw_plan(nodes, p, orient):
         lay.cells[(x1, y1)] = (br, col, False)
         lab = nd["label"]
         heavy = st == "heavy"
+        my = (y0 + y1) // 2
         tx = x0 + (x1 - x0 + 1 - dwidth(lab)) // 2
         for k, ch in enumerate(lab):
-            lay.cells[(tx + k, y0 + 1)] = (ch, COL["gemm_text"] if heavy else COL["text"], heavy)
+            lay.cells[(tx + k, my)] = (ch, COL["gemm_text"] if heavy else COL["text"], heavy)
+        if y1 - y0 >= 4:              # a big box also names the kernel the GPU ran
+            ms = nd["members"]
+            sub = (f"{len(ms)} kernels, #{ms[0]}-{ms[-1]}" if len(ms) > 1 else
+                   f"#{ms[0]}  {short_name(nd['full'])}" if nd["kind"] == "kernel" else f"#{ms[0]}")
+            sub = cut(sub, x1 - x0 - 3)
+            sx = x0 + (x1 - x0 + 1 - dwidth(sub)) // 2
+            for k, ch in enumerate(sub):
+                lay.cells[(sx + k, my + 2)] = (ch, COL["dim"], False)
     for u, xy in tees:
         st, col = style_of(nodes[u])
         lay.cells[xy] = (BOX[st][6] if orient == "LR" else BOX[st][7], col, False)
@@ -398,7 +409,20 @@ def wrap(cn, ce, node_gap, rank_gap, max_h):
 
 
 def layout(data, roles=None, width=120, prefer=("LR", "TB"), node_gap=None, rank_gap=0,
-           height=None):
+           height=None, box=None):
+    """See _layout. box: least box size (width, height) in cells, to match a big sprite."""
+    from cgviz import layout as L
+
+    old = L.BOX
+    L.BOX = box or old
+    try:
+        return _layout(data, roles, width, prefer, node_gap, rank_gap, height)
+    finally:
+        L.BOX = old
+
+
+def _layout(data, roles=None, width=120, prefer=("LR", "TB"), node_gap=None, rank_gap=0,
+            height=None):
     """Lay the graph out. node_gap may be a number or {orient: number}. With `height`, the
     first orientation that fits width x height wins; if none does, the top-to-bottom layout
     is folded into columns (see `wrap`) so the whole graph stays in view."""

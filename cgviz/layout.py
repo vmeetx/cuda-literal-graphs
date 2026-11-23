@@ -141,6 +141,9 @@ def _layers(nodes, edges):
     return Ld, seg, chains, depth
 
 
+BOX = (7, 3)    # least box size (width, height) in cells; draw.layout(box=...) raises it
+
+
 def plan(nodes, edges, orient, node_gap=None, rank_gap=0):
     """Grid geometry in abstract axes: a = along the flow, c = across it. rank_gap: the
     least distance between consecutive layers (room for a big sprite between them)."""
@@ -150,9 +153,10 @@ def plan(nodes, edges, orient, node_gap=None, rank_gap=0):
     def size(n):  # (la, lc)
         if n < 0:
             return None
-        w = max(dwidth(nodes[n]["label"]) + 4, 7)  # 7: room for a stream tag after the corner
+        w = max(dwidth(nodes[n]["label"]) + 4, BOX[0])  # >=7: room for a stream tag
         w += 1 - w % 2  # odd width: a single centre column, so straight edges stay straight
-        return (w, 3) if orient == "LR" else (3, w)
+        h = BOX[1] + 1 - BOX[1] % 2                     # odd height: a single middle row
+        return (w, h) if orient == "LR" else (h, w)
 
     maxla = [max((size(n)[0] for n in layer if n > 0), default=1) for layer in Ld]
     # cross positions: barycentre-guided packing, a few down/up passes

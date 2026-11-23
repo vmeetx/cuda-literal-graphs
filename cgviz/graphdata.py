@@ -34,6 +34,8 @@ def op_of(raw):
     s = (raw or "").lower()
     if GEMM_PAT.search(s):
         return "splitK" if "splitkreduce" in s else "gemm"
+    if "flash" in s or "attention" in s or "fmha" in s:
+        return "attn"
     if "softmax" in s:
         return "softmax"
     if "catarray" in s:

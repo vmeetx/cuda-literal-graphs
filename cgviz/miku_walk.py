@@ -188,20 +188,27 @@ def _whole(data, roles, cols, rows, speed, size):
     from cgviz import draw, show
     from cgviz.walk import Walk
 
-    sp = show.TinySprites() if size == "tiny" else show.V1Sprites()
-    gaps = ({"TB": sp.w + 1, "LR": sp.h - 1} if size == "tiny" else show.NODE_GAP)
+    big = size in miku_assets.TIERS      # the v2 Miku walking over the whole graph
+    sp = (Sprites(size) if big else show.TinySprites() if size == "tiny" else show.V1Sprites())
+    box = (sp.w // 2, sp.h // 4) if big else None      # kernels about half her size
+    gaps = ({"TB": sp.w // 3, "LR": sp.h // 4} if big else
+            {"TB": sp.w + 1, "LR": sp.h - 1} if size == "tiny" else show.NODE_GAP)
 
     def attempt(**kw):
-        lay, _, cn, ce = draw.layout(data, roles, cols, node_gap=gaps, **kw)
-        frames = Walk(lay, cn, ce, speed=speed, gap=sp.w + 1,
-                      stagger=size != "tiny").frames()
+        lay, _, cn, ce = draw.layout(data, roles, cols, node_gap=gaps, box=box, **kw)
+        if big:
+            frames = animate(Walk(lay, cn, ce, speed=speed, turns=turn_ticks(size),
+                                  gap=sp.w // 3, stagger=False).frames(), size, speed)
+        else:
+            frames = Walk(lay, cn, ce, speed=speed, gap=sp.w + 1,
+                          stagger=size != "tiny").frames()
         sc = show.Scene(lay, cn, frames, cols, rows, panel=False, sprites=sp)
         over = max(0, sc.ch - sc.vh) + max(0, sc.cw - sc.cols)
         return over, sc.ch - sc.vh, (lay, cn, frames, sp)
 
     tries = [attempt(prefer=("LR",)), attempt(prefer=("TB",))]
     best = min(tries, key=lambda t: t[0])
-    height = rows - 2 - sp.h
+    height = rows - 2 - (min(sp.h, 8) if big else sp.h)
     for _ in range(8):
         if best[0] == 0 or height <= 6:
             break
@@ -214,12 +221,16 @@ def _whole(data, roles, cols, rows, speed, size):
     return best[2]
 
 
-def walk(data, roles, width, orient, cols, rows, speed=1.0, size=DEFAULT_SIZE):
+def walk(data, roles, width, orient, cols, rows, speed=1.0, size=DEFAULT_SIZE, whole=False):
     """Lay the graph out with room for the sprite and simulate the walk.
     size: tiny (default, about one box: the whole graph stays in view), small (the v1
     sprite), compact or full (the v2 Miku, camera follows her), or auto (the largest that
-    keeps the whole graph in view). Returns (layout, nodes, frames, sprites)."""
+    keeps the whole graph in view). whole: compact or full on the whole-graph layout, walking
+    over the boxes. Returns (layout, nodes, frames, sprites)."""
     from cgviz import show
+
+    if whole and size in miku_assets.TIERS:
+        return _whole(data, roles, cols, rows, speed, size)
 
     if size == "auto":
         for s in reversed(SIZES):

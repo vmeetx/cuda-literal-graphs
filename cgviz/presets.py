@@ -16,7 +16,8 @@ LAYER_ROLES = ["Q", "K", "V", "QK", "PV", "out", "gate", "up", "down"]
 ROLES = {"diamond": ["gemm1", "gemm2"], "decode": LAYER_ROLES, "prefill": LAYER_ROLES,
          # the examples/ workloads
          "mlp": ["fc1", "fc2", "fc3"],
-         "experts": ["router"] + [f"{p}{i}" for i in range(1, 5) for p in ("up", "down")]}
+         "experts": ["router"] + [f"{p}{i}" for i in range(1, 5) for p in ("up", "down")],
+         "llama": [r for _ in range(2) for r in ("q", "k", "v", "o", "gate", "up", "down")]}
 
 _STREAMS: dict[str, list] = {}
 
