@@ -1,105 +1,112 @@
-# cuda-literal-graphs (cgviz)
+# cuda-literal-graphs
 
-I thought CUDA graphs were graphs, so I made them graphs.
+Someone told me PyTorch could "capture a CUDA graph", and I got excited. Graphs! Boxes, arrows, maybe a little guy walking along them.
 
-![Miku walking a captured diamond graph in an 80x24 terminal](findings/miku_v2/walk_v2/diamond_80x24.gif)
+It turned out a CUDA graph is a recording of GPU work that you can replay quickly. Nobody draws it. There are no boxes and nobody walks along it.
 
-`cgviz` captures a PyTorch workload as a CUDA graph, then draws that graph in your terminal as real boxes and arrows, labelled with the actual kernel names, and a pixel-art Miku walks across it.
+So I fixed that.
 
-How it came about, and everything learned along the way: [JOURNEY.md](JOURNEY.md).
+![Miku walking a diamond: two branches on two streams, then a join](media/diamond.gif)
 
-## What you're looking at
+`cgviz` captures a real PyTorch workload as a CUDA graph, draws that graph in your terminal with the actual kernel names on the boxes, and then Hatsune Miku walks it. She waits at joins. She splits up at forks. She does a little hop at the end.
 
-`cgviz` draws a **captured graph**: the CUDA graph PyTorch recorded while running a workload once, with every kernel, memset and dependency in it.
+The joke is mine. The graph is real: every box is a kernel that cuBLAS or PyTorch really launched on my laptop GPU, in the order the GPU was allowed to run them.
 
-- **Unfused, one kernel per op.** In eager mode each PyTorch op launches its own kernel. An RMSNorm written in plain PyTorch is 8 kernels. Runs of small elementwise kernels are folded into one box (`norm x8`) so the graph stays readable; the node list below the drawing names every member.
-- **cuBLAS picks only the matmul kernels.** Matmuls go to cuBLAS, which picks a GEMM, GEMV or split-K kernel for that shape on your GPU. Softmax, concat and elementwise ops are PyTorch's own kernels. The names shown are the ones picked at capture.
-- **Provenance header.** Every run starts with the stream count measured during capture, the GPU, the CUDA and cuBLAS versions, and the main GEMM shapes.
-- **A fork means independent**, not parallel: neither branch waits for the other. That is what lets the GPU overlap them, but the graph records only dependencies. A workload issued on a single stream captures as a plain chain, and no fork can appear.
-- **No time axis.** The walk shows structure, not timing. Miku walks at the same pace everywhere.
+(If you want the long version, with the dead ends and the sprite saga, read [JOURNEY.md](JOURNEY.md).)
 
-### How the walk maps to the graph
+## Three graphs, three lessons
 
-| On screen | In the captured graph |
+**One stream is a straight line.** This is a 3-layer MLP. You might expect "the model" to look like a fancy graph. It doesn't. On one stream every kernel waits for the one before it, so you get a queue, and Miku walks down the queue.
+
+![Miku walking a 3-layer MLP: one stream, so a plain chain](media/mlp.gif)
+
+**Streams make forks.** Put four "experts" on four streams and suddenly there's something to look at: the graph forks four ways and joins again. Four Mikus leave together, and the fastest one has to wait for the rest at the join. (They pile up on each other at the fork. They're friends. It's fine.)
+
+![Four Mikus on a four-way fork and join](media/experts.gif)
+
+**A real model is a long, long line.** Two layers of a TinyLlama-sized decoder, decoding one token: RoPE, a KV cache, FlashAttention, SwiGLU. It's 84 kernels, mostly tiny elementwise ones, so runs of them get folded into one box (`norm x9`). The graph is far too tall for a terminal, so it's wrapped into columns, like a newspaper.
+
+![Miku walking two Llama decoder layers, wrapped into columns](media/llama_whole.gif)
+
+## What the walk means (and what it doesn't)
+
+| You see | It means |
 |---|---|
-| a box lights up while she stands at it | that kernel's turn: everything it depends on is done |
-| she splits into k Mikus at a box, all leaving together | a fork: k kernels that depend only on this one, all ready at once |
-| a Miku stops before a box and waits for the others | a join: a kernel that waits for every branch |
-| one Miku walking a straight line of boxes | a single stream: each kernel waits for the one before it |
-| which branch arrives first | nothing: the graph records dependencies, not durations |
+| a box lights up when she reaches it | that kernel's turn: everything it depends on is finished |
+| she splits into several Mikus, who leave together | a fork: kernels that only depend on this one, all ready at once |
+| a Miku stops and waits for the others | a join: this kernel waits for every branch |
+| one Miku, one straight line | a single stream: each kernel waits for the last |
+| which Miku gets there first | **nothing.** The graph stores dependencies, not durations |
 
-## Commands
+She walks at the same speed everywhere. There is no time axis. A fork means "these don't wait for each other", which is what lets the GPU overlap them; it doesn't promise they ran at the same time.
 
-| Command | What it does |
+A few other honest notes:
+
+- These are eager-mode kernels, one per op. An RMSNorm written in plain PyTorch is about 8 kernels, which is why the folded boxes exist. The list under the drawing names every one.
+- cuBLAS only picks the matmul kernels (GEMM, GEMV or split-K, depending on the shape and your GPU). Softmax, concat and the elementwise stuff are PyTorch's own.
+- Every run starts with a header: how many streams were seen during capture, the GPU, the CUDA and cuBLAS versions, and the main GEMM shapes. So you know where the picture came from.
+
+## Try it without a GPU
+
+The repo ships with saved captures, so you can watch her walk on any machine, Windows included. From a checkout, in PowerShell:
+
+```powershell
+cd "D:\path\to\cuda-literal-graphs"
+```
+
+```powershell
+pip install networkx numpy matplotlib
+```
+
+```powershell
+python -m cgviz show tests\fixtures\graphs\llama.json --labels llama
+```
+
+Swap `llama` for `diamond`, `decode`, `mlp` or `experts` (both the file name and the `--labels`). Make the terminal big; full-screen Windows Terminal is good. `Ctrl+C` stops her.
+
+## Capture your own
+
+This part needs an NVIDIA GPU on Linux or WSL2, Python 3.10, and torch 2.14.1 built for CUDA 13.0 (older torch can't list the nodes of a captured graph, and cgviz will tell you so). You also want `c++filt` from binutils, for readable kernel names.
+
+```bash
+pip install -r requirements.txt && pip install -e .
+```
+
+Then:
+
+| Command | What gets captured |
 |---|---|
-| `cgviz diamond` | capture and draw two branches on two streams, joined |
-| `cgviz decode` | one transformer layer, 1 token (bf16) |
+| `cgviz diamond` | two branches on two streams, joined |
+| `cgviz decode` | one transformer layer, 1 token |
 | `cgviz prefill` | the same layer, 512 tokens |
-| `cgviz demo` | the built-in diamond |
-| `cgviz draw path.py:function` | your own workload (see below) |
-| `cgviz draw examples/mlp.py:make` | a 3-layer MLP on one stream: a plain chain |
-| `cgviz draw examples/experts.py:make` | four experts on four streams: a 4-way fork and join |
-| `cgviz show path/graph_data.json` | replay a saved capture; no GPU needed |
-| `cgviz env` | print environment versions |
-| `cgviz time`, `cgviz vs-ncu` | not implemented yet |
+| `cgviz draw examples/mlp.py:make` | the MLP above |
+| `cgviz draw examples/experts.py:make` | the four experts above |
+| `cgviz draw examples/llama_decode.py:make` | the two Llama layers above |
+| `cgviz draw my_model.py:make` | yours |
+| `cgviz show out/.../graph_data.json` | replay a capture you saved earlier |
+| `cgviz env` | print the versions it would put in the header |
 
-Options for the drawing commands:
+For your own model, `make()` returns `(step, inputs)` and `step(*inputs)` is what gets captured. An optional `ROLES` list in the same file names the matmuls in order (Q, K, V, ...). The files in `examples/` show the pattern, including `cgviz.presets.fork` for putting work on separate streams. Anything that reads back to the CPU inside `step` (`.item()`, `.cpu()`, `print(tensor)`) breaks capture.
 
-| Option | Meaning |
+Options worth knowing:
+
+| Option | What it does |
 |---|---|
-| `--speed 1.5` | walk speed multiplier |
-| `--miku-size tiny\|small\|compact\|full\|auto` | sprite size. `tiny` (default) is about one box, and the whole graph stays on screen. `small` is the original 12-cell sprite. `compact` and `full` are the big Miku: the map is spread out for her and the camera follows her. `auto` picks the largest size that still shows the whole graph. |
-| `--no-miku` | static drawing only |
-| `--full-names` | untruncated kernel names in the node list |
-| `--no-panel` | no portrait side panel (small sprite) |
-| `--labels diamond\|decode\|prefill` | `show` only: name the GEMMs as that preset does (Q, K, V, ...) |
-| `--out DIR` | output base directory (default `out/`) |
+| `--miku-size compact` | the default Miku, about two boxes wide |
+| `--miku-size full` | the big one. The boxes grow to match her, so give her a big terminal |
+| `--view follow` | spread the map out and follow her with the camera instead of showing everything |
+| `--speed 2` | she walks faster |
+| `--no-miku` | just the drawing, no Miku |
+| `--full-names` | don't shorten the kernel names in the list |
+| `--out DIR` | where captures go (default `out/`) |
 
-### Your own workload
+Each capture lands in `out/<command>-<timestamp>/`: `graph_data.json` (what `show` reads), `provenance.json` (the header), `graph.dot` (NVIDIA's own dump, with launch configs) and `graph.txt` (the drawing as plain text).
 
-`cgviz draw my_model.py:make` imports `my_model.py` and calls `make()`. It must return `(step, inputs)`: `step(*inputs)` is captured. An optional `ROLES` list in the file names the GEMMs in execution order. The files in `examples/` show the pattern, including `cgviz.presets.fork` for putting independent work on separate streams. Everything inside `step` has to be capturable: a CPU readback such as `.item()`, `.cpu()` or `print(tensor)` breaks capture.
+## Small print
 
-## Requirements
-
-**Capture** (`diamond`, `decode`, `prefill`, `demo`, `draw`):
-- an NVIDIA GPU, on Linux or WSL2
-- Python 3.10
-- torch 2.14.1 built for CUDA 13.0. Older torch can't list the nodes of a captured graph; cgviz says so and stops.
-- `c++filt` (binutils) to demangle kernel names
-
-```bash
-pip install -r requirements.txt
-```
-
-```bash
-pip install -e .
-```
-
-**Replay** (`show`) works anywhere, including native Windows, with any recent Python plus networkx, numpy and matplotlib. Run it from a checkout:
-
-```bash
-python -m cgviz show tests/fixtures/graphs/decode.json --labels decode
-```
-
-Windows Terminal and PowerShell work. Colour falls back to 256 colours where the terminal lacks 24-bit; set `CGVIZ_COLOR` to override.
-
-## Output files
-
-Each capture writes to `out/<command>-<YYYYmmdd-HHMMSS>/`:
-
-| File | Contents |
-|---|---|
-| `graph_data.json` | the captured graph: nodes, kernel names (raw and demangled), dependencies. `cgviz show` reads it. |
-| `provenance.json` | the header: streams, GPU, CUDA, cuBLAS, GEMM shapes |
-| `graph.dot` | NVIDIA's own DOT dump, with launch configs |
-| `graph.txt` | the drawing and node list as plain text |
-
-## Caveats
-
-- Tested on one GPU (RTX 3050 Laptop) with cuBLAS. Kernel choices differ between GPUs and library versions.
-- Small graphs only: around 30 nodes after folding stays readable.
-- With the default tiny sprite, a tall graph is folded into side-by-side columns so all of it fits. Decode fits a 120x40 terminal and prefill fits 120x42; in a smaller terminal the camera follows her.
-- Folding hides the individual elementwise kernels inside a box. The node list keeps them.
+- Tested on one GPU, an RTX 3050 Laptop. Your GPU and library versions will pick different kernels, and that's half the fun.
+- It's built for small graphs. A couple of decoder layers is about the limit before it becomes wallpaper.
+- The runtime is standard library only. The GIFs here were rendered with `tools/snap.py`, which needs Pillow.
 
 ## License and credits
 
@@ -107,4 +114,4 @@ The code is MIT; see [LICENSE](LICENSE).
 
 **Hatsune Miku © Crypton Future Media, INC. www.piapro.net**
 
-The Miku sprite art (`cgviz/assets/miku/` and the drawings under `findings/` and `assets/`) is fan art of a character owned by Crypton Future Media. It is **not** covered by the MIT license. It is shared for non-commercial use under the [Piapro Character License](https://piapro.net/intl/en_for_creators.html). Don't use it commercially. If you need a commercially usable build, `--no-miku` draws the graph alone.
+The Miku sprite art (`cgviz/assets/miku/`, the drawings under `findings/` and `assets/`, and the GIFs in `media/`) is fan art of a character owned by Crypton Future Media. It is **not** under the MIT license. It's shared for non-commercial use under the [Piapro Character License](https://piapro.net/intl/en_for_creators.html), so please don't use it commercially. If you need something you can use commercially, `--no-miku` draws the graph on its own.

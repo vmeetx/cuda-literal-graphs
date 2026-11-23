@@ -37,12 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
     anim = argparse.ArgumentParser(add_help=False)
     anim.add_argument("--no-miku", action="store_true", help="static graph only")
     anim.add_argument("--speed", type=float, default=1.0, help="walk/stop speed multiplier")
-    anim.add_argument("--miku-size", choices=("tiny", "small", "compact", "full", "auto"),
-                      default="tiny",
-                      help="sprite size. tiny (default): about one box, and the whole graph "
-                           "stays in view; small: the 12-cell v1 sprite; compact, full: the big "
-                           "Miku, the camera follows her; auto: the largest that keeps the "
-                           "whole graph in view")
+    anim.add_argument("--miku-size", choices=("compact", "full", "small"), default="compact",
+                      help="compact (default): the half-size Miku; full: the big one; small: "
+                           "the original 12-cell sprite")
+    anim.add_argument("--view", choices=("whole", "follow"), default="whole",
+                      help="whole (default): boxes scaled to her and as much of the graph on "
+                           "screen as fits; follow: the map spread out and the camera on her")
     anim.add_argument("--no-panel", action="store_true", help="no portrait side panel")
     anim.add_argument("--full-names", action="store_true", help="untruncated kernel names")
     for name, desc in (("diamond", "two branches on two streams, joined"),
@@ -55,7 +55,8 @@ def build_parser() -> argparse.ArgumentParser:
     sh = sub.add_parser("show", parents=[common, anim],
                         help="replay a saved capture (out/.../graph_data.json); no GPU needed")
     sh.add_argument("path", type=Path, help="graph_data.json written by an earlier run")
-    sh.add_argument("--labels", choices=("diamond", "decode", "prefill", "mlp", "experts"),
+    sh.add_argument("--labels", choices=("diamond", "decode", "prefill", "mlp", "experts",
+                                         "llama"),
                     help="name the GEMMs as that preset does (Q, K, V, ...)")
     sub.add_parser("time", parents=[common], help="eager vs graph replay over a size sweep")
     sub.add_parser("vs-ncu", parents=[common], help="this timer vs Nsight Compute")
@@ -154,7 +155,8 @@ def show_graph(args: argparse.Namespace, data: dict, roles: list[str] | None, ti
         size = shutil.get_terminal_size((width, args.rows))
         alay, acn, frames, sprites = miku_walk.walk(
             data, roles, width, lay.orient, size.columns, size.lines,
-            speed=args.speed, size=getattr(args, "miku_size", "tiny"))
+            speed=args.speed, size=getattr(args, "miku_size", "compact"),
+            whole=getattr(args, "view", "whole") == "whole")
         show.play(alay, acn, frames, title=f"cgviz {title} · captured graph",
                   panel=not args.no_panel, sprites=sprites)
     show.print_static(static)
