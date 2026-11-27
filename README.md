@@ -1,26 +1,26 @@
 # cuda-literal-graphs
 
-Someone told me PyTorch could "capture a CUDA graph", and I got excited. Graphs! Boxes, arrows, maybe a little guy walking along them.
+so cuda graphs arent graphs and i had some time in my university so i was like hey what if you could like more deterministically map out and see execution of every fucking work or kernel youre running and thats pretty doable so i built that , cuda graphs that are like literally graphs 
 
-It turned out a CUDA graph is a recording of GPU work that you can replay quickly. Nobody draws it. There are no boxes and nobody walks along it.
-
-So I fixed that.
+ai generated readmes for pet projects are disgusting i thought itd be fine for this one guh it did NOT sound like me, but anyway heres what i fucked around with
 
 ![Miku walking a diamond: two branches on two streams, then a join](media/diamond.gif)
 
 `cgviz` captures a real PyTorch workload as a CUDA graph, draws that graph in your terminal with the actual kernel names on the boxes, and then Hatsune Miku walks it. She waits at joins. She splits up at forks. She does a little hop at the end.
 
-The joke is mine. The graph is real: every box is a kernel that cuBLAS or PyTorch really launched on my laptop GPU, in the order the GPU was allowed to run them.
 
-(If you want the long version, with the dead ends and the sprite saga, read [JOURNEY.md](JOURNEY.md).)
+so every box is a kernel that cublas or pytorch really launches on a 3050 in the order the gpu ran them
+
 
 ## Three graphs, three lessons
 
-**One stream is a straight line.** This is a 3-layer MLP. You might expect "the model" to look like a fancy graph. It doesn't. On one stream every kernel waits for the one before it, so you get a queue, and Miku walks down the queue.
+singular streams get like one line 
+**One stream is a straight line.** This is a 3-layer MLP, so each kernel waits for every next one and its just a simple representation so if you try to do something actually complex its probably gonna suck 
 
 ![Miku walking a 3-layer MLP: one stream, so a plain chain](media/mlp.gif)
 
-**Streams make forks.** Put four "experts" on four streams and suddenly there's something to look at: the graph forks four ways and joins again. Four Mikus leave together, and the fastest one has to wait for the rest at the join. (They pile up on each other at the fork. They're friends. It's fine.)
+
+this one was more fun, so streams obviously make forks, you get four "experts" on four streams and the graphs fork four ways then rejoin 
 
 ![Four Mikus on a four-way fork and join](media/experts.gif)
 
@@ -104,8 +104,8 @@ Each capture lands in `out/<command>-<timestamp>/`: `graph_data.json` (what `sho
 
 ## Small print
 
-- Tested on one GPU, an RTX 3050 Laptop. Your GPU and library versions will pick different kernels, and that's half the fun.
-- It's built for small graphs. A couple of decoder layers is about the limit before it becomes wallpaper.
+- Tested on one GPU, an RTX 3050 Laptop. Your GPU and library versions will pick different kernels, im broke man dont have high hopes from me
+- It's built for small graphs. A couple of decoder layers is about the limit before it becomes wallpaper of random gibberish.
 - The runtime is standard library only. The GIFs here were rendered with `tools/snap.py`, which needs Pillow.
 
 ## License and credits
